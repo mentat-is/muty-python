@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=60", "setuptools-scm>=8.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+
+[project]
+name = "muty"
+dynamic = ["version"]
+authors = [{ name = "Mentat", email = "info@mentat.is" }]
+description = "our internal utilities :)"
+readme = "README.md"
+requires-python = ">=3.12"
+
+dependencies = [
+    "aiofiles",
+    "aioshutil",
+    "aiopath",
+    "aiomultiprocess",
+    "aiopath",
+    "aiohttp",
+    "art",
+    "coloredlogs",
+    "python-dateutil",
+    "json5",
+    "fastapi",
+    "lxml",
+    "ntplib",
+    "pycryptodome",
+    "pydantic",
+    "psutil",
+    "xmltodict",
+    "async-unzip",
+    "setuptools",
+    "starlette",
+]
