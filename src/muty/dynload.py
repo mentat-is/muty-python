@@ -8,12 +8,7 @@ import importlib
 import importlib.util
 import os
 from types import ModuleType
-
-import muty.log
-import muty.string
-
-_logger = muty.log.internal_logger()
-
+import sys
 
 def load_dynamic_module_from_file(path: str) -> ModuleType:
     """
@@ -25,7 +20,12 @@ def load_dynamic_module_from_file(path: str) -> ModuleType:
     Returns:
         ModuleType: The loaded module.
     """
-    spec = importlib.util.spec_from_file_location(os.path.basename(path), path)
+    module_name = os.path.splitext(os.path.basename(path))[0]
+    spec = importlib.util.spec_from_file_location(module_name, path)
     mod = importlib.util.module_from_spec(spec)
+
+    # add the module to the sys.modules dictionary (required for pickle)
+    sys.modules[module_name] = mod
     spec.loader.exec_module(mod)
+    #print('loaded module:%s, module_name=%s' % (mod, module_name))
     return mod
