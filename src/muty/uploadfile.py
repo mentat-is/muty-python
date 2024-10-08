@@ -28,7 +28,8 @@ async def to_path(
 
     Args:
         f (UploadFile): The UploadFile object to be downloaded and saved.
-        dest_dir (str): The destination directory where the file will be saved (will be created if it doesn't exists). if None, file will be downloaded in the temporary directory.
+        dest_dir (str): The destination directory where the file will be saved (will be created if it doesn't exists). 
+            if None, file will be downloaded in a unique temporary directory under $TEMP (the caller is responsible to cleanup the directory).
         use_random_filename (bool, optional): Flag indicating whether to use a random filename. Defaults to False.
         chunk_size (int, optional): The size of the chunks to be downloaded. Defaults to 256*1024 bytes (256k).
     Returns:
