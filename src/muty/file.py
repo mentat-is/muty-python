@@ -24,6 +24,21 @@ import muty.log
 
 _logger = muty.log.internal_logger()
 
+async def write_temporary_file_async(content: any, suffix: str = None) -> str:
+    """
+    Write content to a temporary file (async).
+
+    Args:
+        content (any): The content to write to the file.
+        suffix (str, optional): The suffix of the temporary file. Defaults to None.
+
+    Returns:
+        str: The path of the temporary file.
+    """
+    fd, path = tempfile.mkstemp(suffix=suffix)
+    os.close(fd)
+    await write_file_async(path, content)
+    return path
 
 def safe_path_join(root: str, *segments, allow_relative=False):
     """Safely joins a path starting from `root` with all `*segments`.
