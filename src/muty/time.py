@@ -7,7 +7,6 @@ import time
 from datetime import datetime, timezone, timedelta
 from dateutil import parser
 import ntplib
-#import pandas
 
 SECONDS_TO_NANOSECONDS = 1000000000
 NANOSECONDS_TO_MILLISECONDS = 1000000
@@ -157,6 +156,82 @@ def nanos_to_millis(nanos: int) -> int:
     """
     return nanos // NANOSECONDS_TO_MILLISECONDS
 
+
+def check_iso8601(s: str) -> bool:
+    """
+    Check if a string is a valid ISO 8601 formatted string.
+
+    Args:
+        s (str): The string to check.
+
+    Returns:
+        bool: True if the string is a valid ISO 8601 formatted string, False otherwise.
+    """
+    try:
+        parser.parse(s)
+        return True
+    except:
+        return False
+
+def ensure_iso8601(time_str: str) -> str:
+    """
+    Ensures a string is in ISO 8601 format. Converts from numeric strings and other time format strings if necessary.
+    
+    Args:
+        time_str (str): The input time string.
+        
+    Returns:
+        str: The ISO 8601 formatted string.
+    """
+    try:
+        # Try to parse the string as a datetime object
+        dt = parser.parse(time_str)
+        return dt.astimezone(timezone.utc).isoformat()
+    except (ValueError, OverflowError):
+        pass
+    
+    if time_str.isdigit():
+        numeric = int(time_str)
+        if numeric > 1_000_000_000_000_000_000:
+            # assume nanoseconds
+            seconds, nanoseconds = divmod(numeric, 1_000_000_000)
+            dt = datetime.fromtimestamp(seconds, tz=timezone.utc) + timedelta(microseconds=nanoseconds / 1000)
+            return dt.isoformat()
+        elif numeric > 1_000_000_000_000:
+            # assume milliseconds
+            return datetime.fromtimestamp(numeric / 1_000, tz=timezone.utc).isoformat()
+        elif numeric >= 0:
+            # assume seconds
+            return datetime.fromtimestamp(numeric, tz=timezone.utc).isoformat()
+        else:
+            raise ValueError("Numeric value must be non-negative")
+    
+    raise ValueError("Invalid time format")
+
+        
+def numeric_to_iso8601(numeric: int) -> str:
+    """
+    Converts a numeric value to an ISO 8601 formatted string.
+    The numeric value may be in seconds from epoch, milliseconds from epoch, or nanoseconds from epoch (unix epoch).
+
+    Args:
+        numeric (int): The numeric value to convert.
+
+    Returns:
+        str: The ISO 8601 formatted string.
+    """
+    if numeric > 1_000_000_000_000:
+        # assume nanoseconds
+        return datetime.fromtimestamp(numeric / 1_000_000_000, tz=timezone.utc).isoformat()
+    elif numeric > 1_000_000_000:
+        # assume milliseconds
+        return datetime.fromtimestamp(numeric / 1_000, tz=timezone.utc).isoformat()
+    elif numeric >= 0:
+        # assume seconds
+        return datetime.fromtimestamp(numeric, tz=timezone.utc).isoformat()
+    else:
+        raise ValueError("Numeric value must be non-negative")
+    
 def float_to_epoch_nsec(f: float, utc: bool=True) -> int:
     """
     Converts a floating-point number to nanoseconds since the Unix epoch.
@@ -189,6 +264,34 @@ def datetime_to_epoch_nsec(dt: datetime, utc: bool=True) -> int:
     return nsec
 
 
+def chrome_epoch_to_iso8601(timestamp: int) -> str:
+    """
+    Converts a chrome timestamp to an ISO 8601 formatted string.
+    
+    Args:
+        timestamp (int): timestamp to convert.
+        
+    Returns:
+        str: The ISO 8601 formatted string.
+    """
+    epoch_start = datetime(1601, 1, 1, tzinfo=timezone.utc)
+    delta = timedelta(microseconds=timestamp)
+    return (epoch_start + delta).isoformat()
+
+def chrome_epoch_to_millis(timestamp: int) -> int:
+    """
+    Converts a chrome timestamp to the number of milliseconds since the Unix epoch.
+    
+    Args:
+        timestamp (int): timestamp to convert.
+        
+    Returns:
+        int: The number of milliseconds since the Unix epoch.
+    """
+    epoch_start = datetime(1601, 1, 1, tzinfo=timezone.utc)
+    delta = timedelta(microseconds=timestamp)
+    return int((epoch_start + delta).timestamp() * 1000)
+
 def chrome_epoch_to_nanos(timestamp: int):
     """
     Converts a chrome timestamp to the number of nanoseconds since the Unix epoch.
@@ -200,6 +303,20 @@ def chrome_epoch_to_nanos(timestamp: int):
     epoch_start = datetime(1601, 1, 1, tzinfo=timezone.utc)
     delta = timedelta(microseconds=timestamp)
     return int((epoch_start+delta).timestamp()*1000000)*1000
+
+def nanos_to_iso8601(nanos: int) -> str:
+    """
+    Converts nanoseconds from the Unix epoch to an ISO 8601 formatted string.
+    
+    Args:
+        nanos (int): The number of nanoseconds since the Unix epoch.
+        
+    Returns:
+        str: The ISO 8601 formatted string.
+    """
+    seconds, nanoseconds = divmod(nanos, 1_000_000_000)
+    dt = datetime.fromtimestamp(seconds, tz=timezone.utc) + timedelta(microseconds=nanoseconds / 1000)
+    return dt.isoformat()
 
 def string_to_epoch_nsec(
     s: str,
@@ -269,7 +386,6 @@ def string_to_epoch_nsec_from_filepath(
         elif time_int > 1_000:
             return time_int * 1_000_000_000, False
 
-    # use pandas
     try:
         ns = string_to_epoch_nsec(
             timestr,

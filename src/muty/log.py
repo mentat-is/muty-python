@@ -14,12 +14,10 @@ import coloredlogs
 _logger = None
 
 
-def exception_to_string_lite(ex: Exception, back_frames: int = 2) -> str:
-    frame = sys._getframe()
-    for i in range(0, back_frames):
-        frame = frame.f_back
-    return "%s:%d:%s" % (__file__, frame.f_lineno, str(ex))
-
+class MultiLineFormatter(logging.Formatter):
+    def format(self, record):
+        message = super().format(record).replace('\\n', '\n')
+        return message
 
 def _thread_id_filter(record) -> int:
     # get real(native) thread id in log messages
@@ -90,7 +88,7 @@ def get_default_logger() -> logging.Logger:
 
 
 def internal_logger(
-    log_to_file: str = None, level: int = logging.DEBUG, force_reconfigure: bool = True
+    log_to_file: str = None, level: int = logging.DEBUG, force_reconfigure: bool = True, use_multiline_formatter: bool = False
 ) -> logging.Logger:
     """get the internal logger. if already configured (and force_reconfigure is not set), returns the existing logger.
 
@@ -98,6 +96,7 @@ def internal_logger(
         log_to_file (str, optional): path to the log file. Defaults to None (log to stdout only)
         level (int, optional): the debug level. Defaults to logging.DEBUG.
         force_reconfigure (bool, optional): if True, will reconfigure the logger also if it already exists. Defaults to True.
+        use_multiline_formatter (bool, optional): whether to use a multiline formatter or not. Defaults to False.
     Returns:
         logging.Logger: configured logger
     """
@@ -105,7 +104,7 @@ def internal_logger(
     if _logger is not None and not force_reconfigure:
         return _logger
 
-    _logger = configure_logger("muty", log_file=log_to_file, level=level)
+    _logger = configure_logger("muty", log_file=log_to_file, level=level, use_multiline_formatter=use_multiline_formatter)
     return _logger
 
 
@@ -117,6 +116,7 @@ def configure_logger(
     max_kept_log: int = 10,
     format_string: str = None,
     custom_field_styles: dict = None,
+    use_multiline_formatter: bool = False,
 ) -> logging.Logger:
     """
     Configures a logger with the given parameters.
@@ -129,7 +129,7 @@ def configure_logger(
         max_kept_log (int, optional): The maximum number of log files to keep. Defaults to 10.
         format_string (str, optional): The log format string. Defaults to None (uses default).
         custom_field_styles (dict, optional): A dictionary of custom field styles for coloredlogs. Defaults to None (ueses default).
-
+        use_multiline_formatter (bool, optional): Whether to use a multiline formatter or not. Defaults to False.
     Returns:
         logging.Logger: The configured logger.
     """
@@ -146,7 +146,8 @@ def configure_logger(
     handlers = []
     stdout_handler = logging.StreamHandler(sys.stdout)
     stdout_handler.setLevel(level)
-    stdout_handler.setFormatter(logging.Formatter(log_format))
+
+    stdout_handler.setFormatter(logging.Formatter(log_format) if not use_multiline_formatter else MultiLineFormatter(log_format))
     stdout_handler.addFilter(_thread_id_filter)
     stdout_handler.addFilter(_path_filter)
     stdout_handler.addFilter(_taskname_filter)
@@ -231,3 +232,11 @@ def exception_to_string(ex: Exception, with_full_traceback: bool = False) -> str
                 ex_str += "[%s:%s:%d] %s" % (filename, module, lineno, s)
 
     return ex_str
+
+def exception_to_string_lite(ex: Exception, back_frames: int = 2) -> str:
+    frame = sys._getframe()
+    for i in range(0, back_frames):
+        frame = frame.f_back
+    return "%s:%d:%s" % (frame.f_code.co_name, frame.f_lineno, str(ex))
+
+
