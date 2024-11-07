@@ -173,43 +173,58 @@ def check_iso8601(s: str) -> bool:
     except:
         return False
 
-def ensure_iso8601(time_str: str) -> str:
+def ensure_iso8601(time_str: str, dayfirst: bool=None, yearfirst: bool=None, fuzzy: bool=None) -> str:
     """
     Ensures a string is in ISO 8601 format. Converts from numeric strings and other time format strings if necessary.
     
     Args:
         time_str (str): The input time string.
-        
+        dayfirst (bool, optional): Whether to interpret the first value in ambiguous dates as the day. Defaults to None (uses dateutil default).
+        yearfirst (bool, optional): Whether to interpret the first value in ambiguous dates as the year. Defaults to None (uses dateutil default).
+        fuzzy (bool, optional): Whether to interpret the string in a fuzzy way. Defaults to None (uses dateutil default).        
     Returns:
         str: The ISO 8601 formatted string.
     """
     try:
         # Try to parse the string as a datetime object
-        dt = parser.parse(time_str)
+        dt = parser.parse(time_str, dayfirst=dayfirst, yearfirst=yearfirst, fuzzy=fuzzy)
         return dt.astimezone(timezone.utc).isoformat()
     except (ValueError, OverflowError):
         pass
     
     if time_str.isdigit():
         numeric = int(time_str)
-        if numeric > 1_000_000_000_000_000_000:
-            # assume nanoseconds
-            seconds, nanoseconds = divmod(numeric, 1_000_000_000)
-            dt = datetime.fromtimestamp(seconds, tz=timezone.utc) + timedelta(microseconds=nanoseconds / 1000)
-            return dt.isoformat()
-        elif numeric > 1_000_000_000_000:
-            # assume milliseconds
-            return datetime.fromtimestamp(numeric / 1_000, tz=timezone.utc).isoformat()
-        elif numeric >= 0:
-            # assume seconds
-            return datetime.fromtimestamp(numeric, tz=timezone.utc).isoformat()
-        else:
-            raise ValueError("Numeric value must be non-negative")
+        return number_to_iso8601(numeric)
     
-    raise ValueError("Invalid time format")
+    raise ValueError("invalid time format: %s" % (time_str))
 
-        
-def numeric_to_iso8601(numeric: int) -> str:
+def number_to_nanos(numeric: str|int) -> int:
+    """
+    Converts a numeric value to nanoseconds from the Unix epoch.
+    The numeric value may be in seconds from epoch, milliseconds from epoch, or nanoseconds from epoch.
+
+    Args:
+        numeric (str|int): The numeric value to convert.
+
+    Returns:
+        int: The number of nanoseconds since the Unix epoch.
+    """
+    if isinstance(numeric, str):
+        numeric = int(numeric)
+
+    if numeric > 1_000_000_000_000_000_000:
+        # assume nanoseconds
+        return numeric
+    elif numeric > 1_000_000_000_000:
+        # assume milliseconds
+        return numeric * MILLISECONDS_TO_NANOSECONDS
+    elif numeric >= 0:
+        # assume seconds
+        return numeric * SECONDS_TO_NANOSECONDS
+    else:
+        raise ValueError("numeric value must be non-negative: %d" % (numeric))
+    
+def number_to_iso8601(numeric: int) -> str:
     """
     Converts a numeric value to an ISO 8601 formatted string.
     The numeric value may be in seconds from epoch, milliseconds from epoch, or nanoseconds from epoch (unix epoch).
@@ -220,17 +235,19 @@ def numeric_to_iso8601(numeric: int) -> str:
     Returns:
         str: The ISO 8601 formatted string.
     """
-    if numeric > 1_000_000_000_000:
+    if numeric > 1_000_000_000_000_000_000:
         # assume nanoseconds
-        return datetime.fromtimestamp(numeric / 1_000_000_000, tz=timezone.utc).isoformat()
-    elif numeric > 1_000_000_000:
+        seconds, nanoseconds = divmod(numeric, 1_000_000_000)
+        dt = datetime.fromtimestamp(seconds, tz=timezone.utc) + timedelta(microseconds=nanoseconds / 1000)
+        return dt.isoformat()
+    elif numeric > 1_000_000_000_000:
         # assume milliseconds
         return datetime.fromtimestamp(numeric / 1_000, tz=timezone.utc).isoformat()
     elif numeric >= 0:
         # assume seconds
         return datetime.fromtimestamp(numeric, tz=timezone.utc).isoformat()
     else:
-        raise ValueError("Numeric value must be non-negative")
+        raise ValueError("numeric value must be non-negative: %d" % (numeric))  
     
 def float_to_epoch_nsec(f: float, utc: bool=True) -> int:
     """
@@ -323,6 +340,7 @@ def string_to_epoch_nsec(
     utc: bool = True,
     dayfirst: bool = False,
     yearfirst: bool = True,
+    fuzzy: bool = False,
 ) -> int:
     """
     Convert a human-readable string to nanoseconds from the Unix epoch.
@@ -333,11 +351,12 @@ def string_to_epoch_nsec(
     @param utc (bool, optional): Whether to use UTC timezone. Defaults to True.
     @param dayfirst (bool, optional): Whether to interpret the first value in ambiguous dates as the day. Defaults to False.
     @param yearfirst (bool, optional): Whether to interpret the first value in ambiguous dates as the year. Defaults to True.
+    @param fuzzy (bool, optional): Whether to interpret the string in a fuzzy way. Defaults to False.
     @return int: The timestamp in nanoseconds from the Unix epoch.
     @throws ParserError: If the timestamp cannot be converted.
     """
     # Parse the datetime string
-    dt = parser.parse(s, dayfirst=dayfirst, yearfirst=yearfirst)
+    dt = parser.parse(s, dayfirst=dayfirst, yearfirst=yearfirst, fuzzy=fuzzy)
     return datetime_to_epoch_nsec(dt, utc=utc)
 
 def string_to_epoch_nsec_from_filepath(
