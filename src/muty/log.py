@@ -139,7 +139,7 @@ def configure_logger(
 
     # configure a default log format, including thread id
     log_format = (
-        "%(asctime)s|%(name)s|%(task)s|%(levelname)s|%(process)d,%(thread_id)d|%(pathname)s,%(funcName)s(),%(lineno)d|%(message)s"
+        "%(asctime)s|%(name)s|%(task)s|%(levelname)s|%(process)d,%(thread_id)d|%(funcName)s|\"%(pathname)s\", line %(lineno)d|%(message)s"
         if format_string is None
         else format_string
     )
