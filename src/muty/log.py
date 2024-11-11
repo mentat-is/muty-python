@@ -228,9 +228,9 @@ def exception_to_string(ex: Exception, with_full_traceback: bool = False) -> str
             else:
                 filename = tb.tb_frame.f_code.co_filename
                 lineno = tb.tb_lineno
-                module = tb.tb_frame.f_code.co_name
-                ex_str += "[%s:%s:%d] %s" % (filename, module, lineno, s)
-
+                fun = tb.tb_frame.f_code.co_name
+                # %(funcName)s|\"%(pathname)s\", line %(lineno)d
+                ex_str += "%s, \"%s\", line %d, %s" % (fun, filename, lineno, s)
     return ex_str
 
 def exception_to_string_lite(ex: Exception, back_frames: int = 2) -> str:
