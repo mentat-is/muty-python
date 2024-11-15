@@ -4,9 +4,10 @@ JSend is a specification for building JSON APIs that respond in a consistent for
 For more information, see https://github.com/omniti-labs/jsend.
 """
 
+from enum import StrEnum
 import json
 import time
-from typing import Literal, Optional
+from typing import Annotated, Literal, Optional
 
 from pydantic import BaseModel, Field
 from starlette.responses import JSONResponse
@@ -56,29 +57,39 @@ class JSendException(Exception):
         super().__init__(msg)
 
 
+class JSendResponseStatus(StrEnum):
+    """
+    Enum for JSend response status.
+    """
+
+    SUCCESS = "success"
+    PENDING = "pending"
+    ERROR = "error"
+    FAIL = "fail"
+
+
 class JSendResponse(BaseModel):
     """
     Model for responses
     """
 
-    status: str = Literal["success", "pending", "error", "fail"]
+    status: JSendResponseStatus = Field(
+        ..., description="response status", examples=[JSendResponseStatus.SUCCESS]
+    )
     req_id: str = Field(
-        openapi_examples={"example": {"value": "the_request_id"}},
-        description=API_DESC_REQID,
+        ...,
+        examples=["the_request_id"],
+        description="the request ID, will be replicated in the response",
     )
     timestamp_msec: int = Field(
-        openapi_examples={"example": {"value": 1692870496556}},
-        description="response timestamp in msec since unix epoch.",
+        ...,
+        examples=[1692870496556],
+        description="response timestamp in milliseconds from unix epoch.",
     )
     data: Optional[dict] = Field(
         default=None,
-        openapi_examples={
-            "example": {
-                "summary": "a dict (layout is API dependendent)",
-                "value": {"results": []},
-            }
-        },
-        description="on success, the result itself.",
+        examples=[{ "results": [1,2,3] }],
+        description="depends on the API, may contain the result of the operation for success.",
     )
 
 
