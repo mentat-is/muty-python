@@ -1,3 +1,7 @@
+"""
+xml utility functions
+"""
+
 import lxml.etree
 import xmltodict
 from lxml.etree import Element

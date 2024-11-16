@@ -2,7 +2,6 @@
 list utilities
 """
 
-
 def split_list_in_n_lists(l: list, n: int = 1) -> list[list]:
     """
     splits a list in multple lists with max n elements each

@@ -7,8 +7,11 @@ TODO: module encryption/license manager
 import importlib
 import importlib.util
 import os
-from types import ModuleType
 import sys
+from types import ModuleType
+
+from muty.log import MutyLogger
+
 
 def load_dynamic_module_from_file(module_name: str, path: str, add_to_sys_modules: bool = True) -> ModuleType:
     """
@@ -24,7 +27,7 @@ def load_dynamic_module_from_file(module_name: str, path: str, add_to_sys_module
     """
     spec = importlib.util.spec_from_file_location(module_name, path)
     mod = importlib.util.module_from_spec(spec)
-    
+    MutyLogger.get_logger().debug('loading module:%s, module_name=%s' % (mod, module_name))
     # add the module to the sys.modules dictionary (required for pickle)
     if add_to_sys_modules:
         sys.modules[module_name] = mod

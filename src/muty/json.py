@@ -1,3 +1,7 @@
+"""
+helper functions for working with json
+"""
+
 def flatten_json(d: dict, prefix="", separator=".", expand_lists=True) -> dict:
     """Flatten out a dict. If expand_lists is True, it also flattens lists. This is a recursive function.
 

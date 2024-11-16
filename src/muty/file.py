@@ -21,8 +21,8 @@ import aioshutil
 from aiopath import AsyncPath
 
 import muty.log
+from muty.log import MutyLogger
 
-_logger = muty.log.internal_logger()
 
 async def write_temporary_file_async(content: any, suffix: str = None) -> str:
     """
@@ -428,7 +428,7 @@ async def unzip(f: str, dest_dir: str = None) -> str:
             os.makedirs(dest_dir, exist_ok=True)
             created = True
 
-        _logger.debug("unzipping %s to %s ..." % (f, dest_dir))
+        MutyLogger.get_logger().debug("unzipping %s to %s ..." % (f, dest_dir))
         # await aiounzip(f, path=dest_dir)
         with ZipFile(f) as zf:
             zf.extractall(path=dest_dir)

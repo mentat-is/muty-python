@@ -1,3 +1,6 @@
+"""
+generic objects functions
+"""
 from typing import Any
 
 
@@ -7,5 +10,6 @@ def close_object(closeable: Any):
     :param closeable: object implementing close()
     :return:
     """
-    if closeable is not None:
+    if closeable and hasattr(closeable, "close"):
+        # call close
         closeable.close()

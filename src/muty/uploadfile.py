@@ -11,10 +11,8 @@ import aiofiles.tempfile
 from fastapi import UploadFile
 
 import muty.file
-import muty.log
 import muty.string
-
-_logger = muty.log.internal_logger()
+from muty.log import MutyLogger
 
 
 async def to_path(
@@ -53,7 +51,7 @@ async def to_path(
     else:
         path = os.path.join(dest_dir, f.filename)
 
-    _logger.debug("downloading UploadFile to %s ..." % (path))
+    MutyLogger.get_logger().debug("downloading UploadFile to %s ..." % (path))
     try:
         async with aiofiles.open(path, "wb") as out_file:
             while content := await f.read(chunk_size):

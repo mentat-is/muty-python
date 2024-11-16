@@ -4,7 +4,6 @@ This module provides functions for retrieving the version of packages.
 
 import pkg_resources
 
-
 def pkg_version(name: str) -> str:
     """! Returns the version of the given package.
     :param name: package name
