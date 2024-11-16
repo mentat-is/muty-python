@@ -38,7 +38,6 @@ class JSendException(Exception):
         """
         self.req_id = req_id
         self.status_code = status_code
-        self.err = message
         self.ex = ex
 
         msg: str = ""
@@ -51,16 +50,6 @@ class JSendException(Exception):
             msg = "ERROR!"
 
         super().__init__(msg)
-
-    def to_dict(self) -> dict:
-        """
-        Converts the exception to a dictionary.
-
-        Returns:
-            dict: The dictionary representation of the exception.
-        """
-        return error_jsend(req_id=self.req_id, err=self.err, ex=self.ex)
-
 
 class JSendResponseStatus(StrEnum):
     """
@@ -97,114 +86,112 @@ class JSendResponse(BaseModel):
         description="depends on the response, may contain the result or error data.",
     )
 
+    @staticmethod
+    def success(req_id: str = None, data: dict = None) -> dict:
+        """
+        Creates a JSend successful response dictionary.
 
-def check_success(js: dict, pending_is_success: bool = True) -> bool:
-    """
-    Checks if a JSend response is successful.
+        Args:
+            req_id (str): The request ID to be added to the response.
+            data (dict): The data of the response (should contain the result itself, dict layout is API dependent).
 
-    Args:
-        js (dict): The JSend response.
-        pending_is_success (bool): Whether pending status should be considered as success. Defaults to True.
+        Returns:
+            dict: The JSend successful response.
+        """
+        js = {"status": JSendResponseStatus.SUCCESS.value}
+        js["timestamp_msec"] = muty.time.now_msec()
+        if req_id:
+            js["req_id"] = req_id
+        if data is not None:
+            js["data"] = data
 
-    Returns:
-        bool: True if the response is successful, False otherwise.
-    """
-    if not js:
-        return False
+        MutyLogger.get_logger().info(json.dumps(js, indent=2))
+        return js
 
-    res = js.get("status", None)
-    if not res:
-        return False
 
-    res = str(res).lower()
-    if res == JSendResponseStatus.SUCCESS.value:
-        return True
-    if pending_is_success:
-        if res == JSendResponseStatus.PENDING.value:
+    @staticmethod
+    def pending(req_id: str) -> dict:
+        """
+        Creates a JSend pending response dictionary.
+
+        Args:
+            req_id (str): The request ID to be added to the response.
+
+        Returns:
+            dict: The JSend pending response.
+        """
+        js = {"status": JSendResponseStatus.PENDING.value}
+        js["timestamp_msec"] = muty.time.now_msec()
+        if req_id:
+            js["req_id"] = req_id
+        MutyLogger.get_logger().info(json.dumps(js, indent=2))
+        return js
+
+    @staticmethod
+    def error(req_id: str = None, err: str = None, ex: Exception = None, data: dict = None) -> dict:
+        """
+        Creates a JSend error response dictionary
+
+        Args:
+            req_id (str): The request ID to be added to the response.
+            err (str): The error message.
+            ex (Exception): The exception object.
+            data (dict): custom data to be added to the response.
+
+        Returns:
+            dict: The JSend error response.
+        """
+        js = {"status": JSendResponseStatus.ERROR.value}
+        if req_id:
+            js["req_id"] = req_id
+        js["timestamp_msec"] = muty.time.now_msec()
+        if data:
+            js["data"] = data
+        else:
+            js["data"] = {}
+
+        d = js["data"]
+
+        if err is not None:
+            # custom error
+            d["__message"] = err
+        if ex:
+            # exception info
+            d["__exception"] = {
+                "name": ex.__class__.__name__,
+                "msg": str(ex),
+                "trace": muty.log.exception_to_string(ex, with_full_traceback=True),
+            }
+        MutyLogger.get_logger().error(json.dumps(js, indent=2))
+        return js
+
+   
+    @staticmethod
+    def check_success(js: dict, pending_is_success: bool = True) -> bool:
+        """
+        Checks if a JSend response dictionary is successful.
+
+        Args:
+            js (dict): The JSend response.
+            pending_is_success (bool): Whether pending status should be considered as success. Defaults to True.
+
+        Returns:
+            bool: True if the response is successful, False otherwise.
+        """
+        if not js:
+            return False
+
+        res = js.get("status", None)
+        if not res:
+            return False
+
+        res = str(res).lower()
+        if res == JSendResponseStatus.SUCCESS.value:
             return True
+        if pending_is_success:
+            if res == JSendResponseStatus.PENDING.value:
+                return True
 
-    return False
-
-
-def success_jsend(req_id: str = None, data: dict = None) -> dict:
-    """
-    Creates a JSend successful dict, optionally with the given "data" node.
-
-    Args:
-        req_id (str): The request ID to be added to the response.
-        data (dict): The data of the response (should contain the result itself, dict layout is API dependent). Defaults to None.
-
-    Returns:
-        dict: The JSend successful response.
-    """
-    js = {"status": JSendResponseStatus.SUCCESS}
-    js["timestamp_msec"] = muty.time.now_msec()
-    if req_id:
-        js["req_id"] = req_id
-    if data is not None:
-        js["data"] = data
-
-    MutyLogger.get_logger().info(json.dumps(js, indent=2))
-    return js
-
-
-def pending_jsend(req_id: str) -> dict:
-    """
-    Creates a JSend pending dict.
-
-    Args:
-        req_id (str): The request ID to be added to the response.
-
-    Returns:
-        dict: The JSend pending response.
-    """
-    js = {"status": "pending"}
-    js["timestamp_msec"] = muty.time.now_msec()
-    if req_id:
-        js["req_id"] = req_id
-    MutyLogger.get_logger().info(json.dumps(js, indent=2))
-    return js
-
-
-def error_jsend(
-    req_id: str = None,
-    err: str = None,
-    ex: Exception = None,
-    data: dict = None,
-) -> dict:
-    """
-    Returns a dictionary in JSend format with an error status.
-
-    Args:
-        req_id (str): The request ID to be added to the response.
-        err (str or dict, optional): The error message. Defaults to None.
-        ex (Exception, optional): The exception object. Defaults to None.
-        data (dict, optional): custom data to be added to the response. Defaults to None.
-    Returns:
-        dict: A dictionary in JSend format with an error status.
-    """
-
-    js = {"status": JSendResponseStatus.ERROR}
-    if req_id:
-        js["req_id"] = req_id
-    js["timestamp_msec"] = muty.time.now_msec()
-    if data:
-        js["data"] = data
-    else:
-        js["data"] = {}
-
-    d = js["data"]
-
-    if err is not None:
-        # custom error
-        d["__message"] = err
-    if ex:
-        # exception info
-        d["__exception"] = {
-            "name": ex.__class__.__name__,
-            "msg": str(ex),
-            "trace": muty.log.exception_to_string(ex, with_full_traceback=True),
-        }
-    MutyLogger.get_logger().error(json.dumps(js, indent=2))
-    return js
+        return False
+    
 
