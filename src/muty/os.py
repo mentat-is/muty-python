@@ -33,7 +33,7 @@ def install_package(package: str, install_in_venv: bool = True):
     Install a Python package using pip.
 
     DEPRECATED, use check_and_install_package instead.
-    
+
     Args:
         package (str): The name of the package to install.
         install_in_venv (bool, optional): Whether to install the package in a virtual environment.
@@ -60,7 +60,7 @@ def check_package_version(package_name: str, version: str = None) -> bool:
     Args:
         package_name (str): The name of the package to check.
         version (str, optional): The version to check. Defaults to None.
-    
+
     Returns:
         bool: True if the package is installed and, optionally, has the correct version.
     """
@@ -80,16 +80,15 @@ def check_and_install_package(package_name: str, version: str=None) -> None:
         package_name (str): The name of the package to check.
         version (str, optional): The version to check. Defaults to None.
     """
-    
     to_install = f"{package_name}=={version}" if version else package_name
     try:
         pkg = pkg_resources.get_distribution(package_name)
         if version and pkg.version != version:
             raise pkg_resources.VersionConflict
-        
+
     except (pkg_resources.DistributionNotFound, pkg_resources.VersionConflict):
         MutyLogger.get_logger().info(f"{package_name} not found or wrong version, installing ...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", f"to_install"])
+        subprocess.check_call([sys.executable, "-m", "pip", "install", to_install])
 
 def get_threads_per_core(logical=False) -> int:
     """! get number of threads per cpu core
