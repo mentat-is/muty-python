@@ -53,6 +53,7 @@ def install_package(package: str, install_in_venv: bool = True):
         ]
     )
 
+
 def check_package_version(package_name: str, version: str = None) -> bool:
     """
     Check if a package is installed and optionally check its version.
@@ -72,7 +73,8 @@ def check_package_version(package_name: str, version: str = None) -> bool:
     except pkg_resources.DistributionNotFound:
         return False
 
-def check_and_install_package(package_name: str, version: str=None) -> None:
+
+def check_and_install_package(package_name: str, version: str = None) -> None:
     """
     Check if a package is installed and optionally check its version. If the package is not installed or has the wrong version, install it.
 
@@ -87,8 +89,11 @@ def check_and_install_package(package_name: str, version: str=None) -> None:
             raise pkg_resources.VersionConflict
 
     except (pkg_resources.DistributionNotFound, pkg_resources.VersionConflict):
-        MutyLogger.get_logger().info(f"{package_name} not found or wrong version, installing ...")
+        MutyLogger.get_instance().info(
+            f"{package_name} not found or wrong version, installing ..."
+        )
         subprocess.check_call([sys.executable, "-m", "pip", "install", to_install])
+
 
 def get_threads_per_core(logical=False) -> int:
     """! get number of threads per cpu core
@@ -110,11 +115,11 @@ def multiprocessing_fixes():
     then we need to ignore SIGCHLD to avoid zombies on processes exit.
     """
     plat = platform.system().lower()
-    MutyLogger.get_logger().info("running on %s ..." % (plat))
+    MutyLogger.get_instance().info("running on %s ..." % (plat))
     if platform.system().lower() == "darwin":
         # by default, now python use spawn() on macos, and this would break gulp multiprocessing engine
         # anyway this is just for developing on macos, production will use linux.
-        MutyLogger.get_logger().warning("setting multiprocessing to use fork!")
+        MutyLogger.get_instance().warning("setting multiprocessing to use fork!")
         multiprocessing.set_start_method("fork")
 
     # avoid zombies on processes exit

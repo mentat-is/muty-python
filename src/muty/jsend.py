@@ -15,6 +15,7 @@ import muty.string
 import muty.time
 from muty.log import MutyLogger
 
+
 class JSendException(Exception):
     """
     Exception class for JSend errors.
@@ -50,6 +51,7 @@ class JSendException(Exception):
             msg = "ERROR!"
 
         super().__init__(msg)
+
 
 class JSendResponseStatus(StrEnum):
     """
@@ -105,9 +107,8 @@ class JSendResponse(BaseModel):
         if data is not None:
             js["data"] = data
 
-        MutyLogger.get_logger().info(json.dumps(js, indent=2))
+        MutyLogger.get_instance().info(json.dumps(js, indent=2))
         return js
-
 
     @staticmethod
     def pending(req_id: str) -> dict:
@@ -124,11 +125,13 @@ class JSendResponse(BaseModel):
         js["timestamp_msec"] = muty.time.now_msec()
         if req_id:
             js["req_id"] = req_id
-        MutyLogger.get_logger().info(json.dumps(js, indent=2))
+        MutyLogger.get_instance().info(json.dumps(js, indent=2))
         return js
 
     @staticmethod
-    def error(req_id: str = None, err: str = None, ex: Exception = None, data: dict = None) -> dict:
+    def error(
+        req_id: str = None, err: str = None, ex: Exception = None, data: dict = None
+    ) -> dict:
         """
         Creates a JSend error response dictionary
 
@@ -162,10 +165,9 @@ class JSendResponse(BaseModel):
                 "msg": str(ex),
                 "trace": muty.log.exception_to_string(ex, with_full_traceback=True),
             }
-        MutyLogger.get_logger().error(json.dumps(js, indent=2))
+        MutyLogger.get_instance().error(json.dumps(js, indent=2))
         return js
 
-   
     @staticmethod
     def check_success(js: dict, pending_is_success: bool = True) -> bool:
         """
@@ -193,5 +195,3 @@ class JSendResponse(BaseModel):
                 return True
 
         return False
-    
-

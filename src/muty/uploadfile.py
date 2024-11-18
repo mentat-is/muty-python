@@ -26,7 +26,7 @@ async def to_path(
 
     Args:
         f (UploadFile): The UploadFile object to be downloaded and saved.
-        dest_dir (str): The destination directory where the file will be saved (will be created if it doesn't exists). 
+        dest_dir (str): The destination directory where the file will be saved (will be created if it doesn't exists).
             if None, file will be downloaded in a unique temporary directory under $TEMP (the caller is responsible to cleanup the directory).
         use_random_filename (bool, optional): Flag indicating whether to use a random filename. Defaults to False.
         chunk_size (int, optional): The size of the chunks to be downloaded. Defaults to 256*1024 bytes (256k).
@@ -51,7 +51,7 @@ async def to_path(
     else:
         path = os.path.join(dest_dir, f.filename)
 
-    MutyLogger.get_logger().debug("downloading UploadFile to %s ..." % (path))
+    MutyLogger.get_instance().debug("downloading UploadFile to %s ..." % (path))
     try:
         async with aiofiles.open(path, "wb") as out_file:
             while content := await f.read(chunk_size):
@@ -65,6 +65,7 @@ async def to_path(
         raise e
 
     return path
+
 
 async def to_path_multi(
     f: list[UploadFile],
@@ -85,8 +86,8 @@ async def to_path_multi(
         tuple[str, list[str]]: A tuple containing the destination directory and a list of paths to the uploaded files.
     """
 
-    l=[]
-    created=False
+    l = []
+    created = False
     if dest_dir is None:
         created = True
         dest_dir = os.path.join(tempfile.gettempdir(), muty.string.generate_unique())
@@ -103,6 +104,7 @@ async def to_path_multi(
         raise e
 
     return dest_dir, l
+
 
 async def unzip(
     f: UploadFile, dest_dir: str = None, chunk_size: int = 1024 * 1000

@@ -40,6 +40,7 @@ async def write_temporary_file_async(content: any, suffix: str = None) -> str:
     await write_file_async(path, content)
     return path
 
+
 def safe_path_join(root: str, *segments, allow_relative=False):
     """Safely joins a path starting from `root` with all `*segments`.
     If resulting path escapes `root`, `root` is returned instead.
@@ -428,7 +429,7 @@ async def unzip(f: str, dest_dir: str = None) -> str:
             os.makedirs(dest_dir, exist_ok=True)
             created = True
 
-        MutyLogger.get_logger().debug("unzipping %s to %s ..." % (f, dest_dir))
+        MutyLogger.get_instance().debug("unzipping %s to %s ..." % (f, dest_dir))
         # await aiounzip(f, path=dest_dir)
         with ZipFile(f) as zf:
             zf.extractall(path=dest_dir)
