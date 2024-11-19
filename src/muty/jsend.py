@@ -157,9 +157,10 @@ class JSendResponse(BaseModel):
 
         if err is not None:
             # custom error
-            d["__message"] = err
+            d["__error"] = err
         if ex:
             # exception info
+            
             d["__exception"] = {
                 "name": ex.__class__.__name__,
                 "msg": str(ex),

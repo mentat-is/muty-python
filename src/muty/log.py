@@ -27,6 +27,9 @@ class MutyLogger(logging.Logger):
     def __init__(self):
         raise RuntimeError("call get_instance() instead")
 
+    log_level=None
+    logger_file_path=None
+
     @classmethod
     def get_instance(
         cls,
@@ -46,6 +49,11 @@ class MutyLogger(logging.Logger):
             if not name:
                 raise ValueError("name must be provided for the first logger instance")
             cls._instance = logging.getLogger(name)
+
+            # save the logger configuration as class variables
+            cls.log_level = level
+            cls.logger_file_path = logger_file_path
+
             cls._reconfigure(
                 cls._instance,
                 logger_file_path=logger_file_path,
