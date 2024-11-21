@@ -24,6 +24,7 @@ dependencies = [
     "python-dateutil",
     "json5",
     "fastapi",
+    "xxhash",
     "lxml",
     "ntplib",
     "pycryptodome",

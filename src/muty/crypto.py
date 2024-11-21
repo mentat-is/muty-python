@@ -1,25 +1,93 @@
 """crypto utilities""" ""
 
-import struct
-
+import xxhash
 import aiofiles
 from Crypto.Hash import MD5, SHA1, SHA256, BLAKE2b
 
-
-def hash_as_unique_int(buffer: str | bytes) -> int:
+def hash_xxh64_int(buffer: str | bytes, enforce_positive: bool=True) -> int:
     """
-    Hashes the given buffer using SHA256 and returns the hash as a unique integer (get first 8 bytes).
+    Hashes the input buffer using the xxhash algorithm and returns the resulting digest as a unique integer.
 
     Args:
         buffer (str | bytes): The buffer to be hashed.
+        enforce_positive (bool, optional): Whether to enforce the hash to be positive. Defaults to True.
 
     Returns:
         int: The hash value as a unique integer.
     """
-    d = hash_sha256(buffer, return_bytes=True)
-    s = struct.unpack("q", d[:8])
-    return s
+    h = xxhash.xxh64(buffer).intdigest()
+    if enforce_positive:
+        return h & 0x7FFFFFFFFFFFFFFF
+    return h
 
+def hash_xxh64(buffer: str | bytes, return_bytes: bool = False) -> str | bytes:
+    """
+    Hashes the input buffer using the xxhash algorithm and returns the resulting digest as a hex string.
+
+    Args:
+        buffer (str | bytes): The input buffer to hash.
+        return_bytes (bool, optional): Whether to return the digest as bytes. Defaults to False.
+
+    Returns:
+        str | bytes: The resulting digest as a hex string or bytes.
+    """
+    digest = xxhash.xxh64()
+    if isinstance(buffer, str):
+        bb = buffer.encode()
+    else:
+        bb = buffer
+    digest.update(bb)
+    if return_bytes:
+        return digest.digest()
+
+    return digest.hexdigest()
+
+def hash_xxh128(buffer: str | bytes, return_bytes: bool = False) -> str | bytes:
+    """
+    Hashes the input buffer using the xxhash algorithm and returns the resulting digest as a hex string.
+
+    Args:
+        buffer (str | bytes): The input buffer to hash.
+        return_bytes (bool, optional): Whether to return the digest as bytes. Defaults to False.
+
+    Returns:
+        str | bytes: The resulting digest as a hex string or bytes.
+    """
+    digest = xxhash.xxh128()
+    if isinstance(buffer, str):
+        bb = buffer.encode()
+    else:
+        bb = buffer
+    digest.update(bb)
+    if return_bytes:
+        return digest.digest()
+
+    return digest.hexdigest()
+
+def hash_xxh64_file(path: str, chunk_size: int = 1024 * 1000, return_bytes: bool = False) -> str | bytes:
+    """
+    Calculate the xxhash of a file.
+
+    Args:
+        path (str): The path to the file.
+        chunk_size (int, optional): The size of each chunk to read from the file. Defaults to 1024*1000.
+        return_bytes (bool, optional): Whether to return the digest as bytes. Defaults to False.
+
+    Returns:
+        str | bytes: The resulting digest as a hex string or bytes.
+    """
+    digest = xxhash.xxh64()
+    with open(path, "rb") as f:
+        while True:
+            buf = f.read(chunk_size)
+            digest.update(buf)
+            if len(buf) < chunk_size:
+                break
+
+    if return_bytes:
+        return digest.digest()
+
+    return digest.hexdigest()
 
 def hash_md5(buffer: str | bytes, return_bytes: bool = False) -> str | bytes:
     """
@@ -182,5 +250,6 @@ def hash_crc24(value:str | bytes, encoder:str="utf-8"):
         crc ^= (octet << 16)
         for i in range(0,8):
             crc <<= 1
-            if crc & 0x1000000: crc ^= POLY
+            if crc & 0x1000000:
+                crc ^= POLY
     return crc & 0xFFFFFF
