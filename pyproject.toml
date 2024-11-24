@@ -20,6 +20,7 @@ dependencies = [
     "aiopath",
     "aiohttp",
     "art",
+    "async-unzip",
     "coloredlogs",
     "python-dateutil",
     "json5",

@@ -5,6 +5,7 @@ TODO: maybe try to avoid code duplication for async/sync functions, if possible,
 without adding stuff like nest_asyncio which would introduce instability.
 """
 
+import asyncio
 import os
 import shutil
 import sys
@@ -19,6 +20,7 @@ import aiofiles.ospath
 import aiopath.wrap
 import aioshutil
 from aiopath import AsyncPath
+from async_unzip.unzipper import unzip as unzip_async
 
 import muty.log
 from muty.log import MutyLogger
@@ -410,7 +412,6 @@ async def unzip(f: str, dest_dir: str = None) -> str:
         f (str): The path to the file to unzip.
         dest_dir (str, optional): The destination directory where the file will be unzipped. if None, will use a temporary directory.
 
-    TODO: find a safe way to unzip using asyncio (aiounzip is not safe, many files fail. for now, mitigate using sync ZipFile)
     Returns:
         str: The path of the destination directory where the file was unzipped. if dest_dir is None, will return the path of the temporary directory and the caller is responsible to delete it.
     """
@@ -430,10 +431,11 @@ async def unzip(f: str, dest_dir: str = None) -> str:
             created = True
 
         MutyLogger.get_instance().debug("unzipping %s to %s ..." % (f, dest_dir))
-        # await aiounzip(f, path=dest_dir)
+        await unzip_async(f, path=dest_dir)
+        """
         with ZipFile(f) as zf:
             zf.extractall(path=dest_dir)
-
+        """
     except Exception as e:
         if created:
             await muty.file.delete_file_or_dir_async(dest_dir)
