@@ -29,18 +29,22 @@ def make_shorter(s: str, max_len: int = 50, ellipsis: str = "...") -> str:
     return s[: max_len - len(ellipsis)] + ellipsis
 
 
-def replace_non_alpha_characters(s: str, replace_char: str = "_") -> str:
+def ensure_no_space_no_special(s: str, lowercase: bool = True) -> str:
     """
-    Replaces all non-alphabetic characters in a string with a specified replacement character.
+    Ensure that a string contains no spaces (replaced by "_") or special characters (removed).
 
     Args:
         s (str): The input string.
-        replace_char (str, optional): The character to replace non-alphabetic characters with. Defaults to '_'.
+        lowercase (bool, optional): Whether to convert the string to lowercase. Defaults to True.
 
     Returns:
-        str: The modified string with non-alphabetic characters replaced.
+        str: The modified string.
     """
-    return re.sub(r"\W+", replace_char, s)
+    if lowercase:
+        s = s.lower()
+    s = s.replace(" ", "_")
+    s = "".join([c for c in s if c.isalnum() or c == "_"])
+    return s
 
 
 def remove_unicode_bom(s: str) -> str:
