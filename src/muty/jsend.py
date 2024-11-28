@@ -75,17 +75,17 @@ class JSendResponse(BaseModel):
     )
     timestamp_msec: int = Field(
         ...,
-        examples=[1692870496556],
+        example=1692870496556,
         description="response timestamp in milliseconds from unix epoch.",
     )
     req_id: str = Field(
         ...,
-        examples=["the_request_id"],
+        example="the_request_id",
         description='the same "req_id" that was sent in the request.',
     )
     data: Optional[dict] = Field(
         default=None,
-        examples=[{"results": [1, 2, 3]}],
+        example={"results": [1, 2, 3]},
         description="depends on the response, may contain the result or error data.",
     )
 

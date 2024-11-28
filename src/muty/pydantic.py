@@ -14,11 +14,11 @@ def autogenerate_model_example_by_class(model_class: BaseModel):
     """
     example = {}
     for field_name, field in model_class.model_fields.items():
-        if hasattr(field, "examples") and field.examples:
-            example[field_name] = field.examples[0]
+        if hasattr(field, "example") and field.example:
+            example[field_name] = field.example[0]
         # Fall back to json_schema_extra
-        elif field.json_schema_extra and "examples" in field.json_schema_extra:
-            example[field_name] = field.json_schema_extra["examples"][0]
+        elif field.json_schema_extra and "example" in field.json_schema_extra:
+            example[field_name] = field.json_schema_extra["example"]
     return example
 
 
@@ -40,5 +40,5 @@ def autogenerate_model_example(cls, *args, **kwargs):
 
     # build example from field examples
     example = autogenerate_model_example_by_class(cls)
-    schema["examples"] = [example]
+    schema["example"] = example
     return schema
