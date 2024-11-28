@@ -135,17 +135,19 @@ class JSendResponse(BaseModel):
 
     @staticmethod
     def error(
-        req_id: str = None, err: str = None, ex: Exception = None, data: dict = None
+        req_id: str = None,
+        ex: Exception | dict | str = None,
+        data: dict = None,
+        **kwargs,
     ) -> dict:
         """
         Creates a JSend error response dictionary
 
         Args:
             req_id (str): The request ID to be added to the response.
-            err (str): The error message.
-            ex (Exception): The exception object.
+            ex (Exception|dict|str): The exception object or error message.
             data (dict): custom data to be added to the response.
-
+            **kwargs: Arbitrary keyword arguments.
         Returns:
             dict: The JSend error response.
         """
@@ -160,17 +162,23 @@ class JSendResponse(BaseModel):
 
         d = js["data"]
 
-        if err is not None:
-            # custom error
-            d["__error"] = err
         if ex:
-            # exception info
+            if isinstance(ex, Exception):
+                d["__error"] = {
+                    "name": ex.__class__.__name__,
+                    "msg": str(ex),
+                    "trace": muty.log.exception_to_string(ex, with_full_traceback=True),
+                }
+            elif isinstance(ex, dict):
+                d["__error"] = ex
+            else:  # str
+                d["__error"] = {"msg": ex}
 
-            d["__exception"] = {
-                "name": ex.__class__.__name__,
-                "msg": str(ex),
-                "trace": muty.log.exception_to_string(ex, with_full_traceback=True),
-            }
+        for k, v in kwargs.items():
+            if d.get("__error") is None:
+                d["__error"] = {}
+            d["__error"][k] = v
+
         MutyLogger.get_instance().error(json.dumps(js, indent=2))
         return js
 
