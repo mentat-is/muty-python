@@ -14,6 +14,7 @@ import muty.log
 import muty.string
 import muty.time
 from muty.log import MutyLogger
+from muty.pydantic import autogenerate_model_example
 
 
 class JSendException(Exception):
@@ -87,6 +88,10 @@ class JSendResponse(BaseModel):
         examples=[{"results": [1, 2, 3]}],
         description="depends on the response, may contain the result or error data.",
     )
+
+    @classmethod
+    def model_json_schema(cls, *args, **kwargs):
+        return autogenerate_model_example(cls, *args, **kwargs)
 
     @staticmethod
     def success(req_id: str = None, data: dict = None) -> dict:
