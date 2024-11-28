@@ -415,6 +415,11 @@ async def unzip(f: str, dest_dir: str = None) -> str:
     Returns:
         str: The path of the destination directory where the file was unzipped. if dest_dir is None, will return the path of the temporary directory and the caller is responsible to delete it.
     """
+
+    def _extract():
+        with ZipFile(f) as zf:
+            zf.extractall(path=dest_dir)
+
     created = False
     try:
         # unzip
@@ -431,11 +436,9 @@ async def unzip(f: str, dest_dir: str = None) -> str:
             created = True
 
         MutyLogger.get_instance().debug("unzipping %s to %s ..." % (f, dest_dir))
-        await unzip_async(f, path=dest_dir)
-        """
-        with ZipFile(f) as zf:
-            zf.extractall(path=dest_dir)
-        """
+        await asyncio.get_event_loop().run_in_executor(None, _extract)
+        # await unzip_async(f, path=dest_dir)
+
     except Exception as e:
         if created:
             await muty.file.delete_file_or_dir_async(dest_dir)

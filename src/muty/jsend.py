@@ -78,7 +78,7 @@ class JSendResponse(BaseModel):
         description="response timestamp in milliseconds from unix epoch.",
     )
     req_id: str = Field(
-        None,
+        ...,
         examples=["the_request_id"],
         description='the same "req_id" that was sent in the request.',
     )
@@ -160,7 +160,7 @@ class JSendResponse(BaseModel):
             d["__error"] = err
         if ex:
             # exception info
-            
+
             d["__exception"] = {
                 "name": ex.__class__.__name__,
                 "msg": str(ex),
