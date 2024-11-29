@@ -6,6 +6,7 @@ For more information, see https://github.com/omniti-labs/jsend.
 
 import json
 from enum import StrEnum
+from pprint import pprint
 from typing import Optional
 
 from pydantic import BaseModel, Field
@@ -163,6 +164,7 @@ class JSendResponse(BaseModel):
         d = js["data"]
 
         if ex:
+            #print("************ ex=%s" % (ex))
             if isinstance(ex, Exception):
                 d["__error"] = {
                     "name": ex.__class__.__name__,
@@ -179,7 +181,8 @@ class JSendResponse(BaseModel):
                 d["__error"] = {}
             d["__error"][k] = v
 
-        MutyLogger.get_instance().error(json.dumps(js, indent=2))
+        # MutyLogger.get_instance().error(json.dumps(js, indent=2))
+        pprint(json.dumps(js, indent=2))
         return js
 
     @staticmethod
