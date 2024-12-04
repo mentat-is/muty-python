@@ -7,9 +7,9 @@ For more information, see https://github.com/omniti-labs/jsend.
 import json
 from enum import StrEnum
 from pprint import pprint
-from typing import Optional
+from typing import Any, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 import muty.log
 import muty.string
@@ -70,6 +70,7 @@ class JSendResponse(BaseModel):
     """
     Model for responses
     """
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     status: JSendResponseStatus = Field(
         ..., description="response status", examples=[JSendResponseStatus.SUCCESS]
@@ -84,7 +85,7 @@ class JSendResponse(BaseModel):
         example="the_request_id",
         description='the same "req_id" that was sent in the request.',
     )
-    data: Optional[dict] = Field(
+    data: Optional[Any] = Field(
         default=None,
         example={"results": [1, 2, 3]},
         description="depends on the response, may contain the result or error data.",
