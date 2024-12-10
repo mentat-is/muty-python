@@ -4,8 +4,8 @@ import signal
 import subprocess
 import sys
 
-import pkg_resources
 import psutil
+from importlib.metadata import version, PackageNotFoundError
 
 from muty.log import MutyLogger
 
@@ -54,27 +54,27 @@ def install_package(package: str, install_in_venv: bool = True):
     )
 
 
-def check_package_version(package_name: str, version: str = None) -> bool:
+def check_package_version(package_name: str, version_check: str = None) -> bool:
     """
     Check if a package is installed and optionally check its version.
 
     Args:
         package_name (str): The name of the package to check.
-        version (str, optional): The version to check. Defaults to None.
+        version_check (str, optional): The version to check. Defaults to None.
 
     Returns:
         bool: True if the package is installed and, optionally, has the correct version.
     """
     try:
-        pkg = pkg_resources.get_distribution(package_name)
-        if version:
-            return pkg.version == version
+        pkg_version = version(package_name)
+        if version_check:
+            return pkg_version == version_check
         return True
-    except pkg_resources.DistributionNotFound:
+    except PackageNotFoundError:
         return False
 
 
-def check_and_install_package(package_name: str, version: str = None) -> None:
+def check_and_install_package(package_name: str, version_check: str = None) -> None:
     """
     Check if a package is installed and optionally check its version. If the package is not installed or has the wrong version, install it.
 
@@ -82,13 +82,8 @@ def check_and_install_package(package_name: str, version: str = None) -> None:
         package_name (str): The name of the package to check.
         version (str, optional): The version to check. Defaults to None.
     """
-    to_install = f"{package_name}=={version}" if version else package_name
-    try:
-        pkg = pkg_resources.get_distribution(package_name)
-        if version and pkg.version != version:
-            raise pkg_resources.VersionConflict
-
-    except (pkg_resources.DistributionNotFound, pkg_resources.VersionConflict):
+    to_install = f"{package_name}=={version_check}" if version_check else package_name
+    if not check_package_version(package_name, version_check):
         MutyLogger.get_instance().info(
             f"{package_name} not found or wrong version, installing ..."
         )

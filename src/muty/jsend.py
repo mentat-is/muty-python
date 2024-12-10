@@ -15,7 +15,6 @@ import muty.log
 import muty.string
 import muty.time
 from muty.log import MutyLogger
-from muty.pydantic import autogenerate_model_example
 
 
 class JSendException(Exception):
