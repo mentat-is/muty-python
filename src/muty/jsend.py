@@ -69,30 +69,37 @@ class JSendResponse(BaseModel):
     """
     Model for responses
     """
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True,
+        json_schema_extra={
+            "examples": [
+                {
+                    "status": "success",
+                    "timestamp_msec": 1692870496556,
+                    "req_id": "the_request_id",
+                    "data": {"results": [1, 2, 3]},
+                }
+            ]
+        },
+    )
 
     status: JSendResponseStatus = Field(
-        ..., description="response status", examples=[JSendResponseStatus.SUCCESS]
+        ...,
+        description="response status",
     )
     timestamp_msec: int = Field(
         ...,
-        example=1692870496556,
         description="response timestamp in milliseconds from unix epoch.",
     )
     req_id: str = Field(
         ...,
-        example="the_request_id",
         description='the same "req_id" that was sent in the request.',
     )
     data: Optional[Any] = Field(
         default=None,
-        example={"results": [1, 2, 3]},
         description="depends on the response, may contain the result or error data.",
     )
-
-    @classmethod
-    def model_json_schema(cls, *args, **kwargs):
-        return autogenerate_model_example(cls, *args, **kwargs)
 
     @staticmethod
     def success(req_id: str = None, data: dict = None) -> dict:
@@ -164,7 +171,7 @@ class JSendResponse(BaseModel):
         d = js["data"]
 
         if ex:
-            #print("************ ex=%s" % (ex))
+            # print("************ ex=%s" % (ex))
             if isinstance(ex, Exception):
                 d["__error"] = {
                     "name": ex.__class__.__name__,
