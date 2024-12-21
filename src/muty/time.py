@@ -12,6 +12,7 @@ SECONDS_TO_NANOSECONDS = 1000000000
 NANOSECONDS_TO_MILLISECONDS = 1000000
 MILLISECONDS_TO_NANOSECONDS = 1000000
 
+
 def time_definition_from_milliseconds(milliseconds: float) -> str:
     """
     Converts milliseconds to a time definition string.
@@ -36,7 +37,7 @@ def time_definition_from_milliseconds(milliseconds: float) -> str:
         ("h", 3600000),
         ("m", 60000),
         ("s", 1000),
-        ("ms", 1)
+        ("ms", 1),
     ]
 
     for unit, value in time_units:
@@ -45,6 +46,7 @@ def time_definition_from_milliseconds(milliseconds: float) -> str:
             return f"{int(time_value)}{unit}"
 
     return "0ms"
+
 
 def time_definition_to_milliseconds(time_str: str) -> float:
     """
@@ -173,35 +175,48 @@ def check_iso8601(s: str) -> bool:
     except:
         return False
 
-def ensure_iso8601(time_str: str, dayfirst: bool=None, yearfirst: bool=None, fuzzy: bool=None) -> str:
+
+def ensure_iso8601(
+    time_str: str, dayfirst: bool = None, yearfirst: bool = None, fuzzy: bool = None
+) -> str:
     """
-    Ensures a string is in ISO 8601 format. Converts from numeric strings and other time format strings if necessary.
-    
+    returns a time string in iso8601 format, starting from a string in different formats.
+
+    formats supported:
+
+    - iso8601
+    - timestamp (seconds from epoch)
+    - timestamp (milliseconds from epoch)
+    - timestamp (nanoseconds from epoch)
+    - anything that dateutil.parser.parse() can handle
+
     Args:
         time_str (str): The input time string.
         dayfirst (bool, optional): Whether to interpret the first value in ambiguous dates as the day. Defaults to None (uses dateutil default).
         yearfirst (bool, optional): Whether to interpret the first value in ambiguous dates as the year. Defaults to None (uses dateutil default).
-        fuzzy (bool, optional): Whether to interpret the string in a fuzzy way. Defaults to None (uses dateutil default).        
+        fuzzy (bool, optional): Whether to interpret the string in a fuzzy way. Defaults to None (uses dateutil default).
     Returns:
         str: The ISO 8601 formatted string.
     """
     try:
-        # Try to parse the string as a datetime object
+        # try to parse the string as a datetime object
         dt = parser.parse(time_str, dayfirst=dayfirst, yearfirst=yearfirst, fuzzy=fuzzy)
         return dt.astimezone(timezone.utc).isoformat()
     except (ValueError, OverflowError):
         pass
-    
+
     if time_str.isdigit():
         numeric = int(time_str)
         return number_to_iso8601(numeric)
-    
+
     raise ValueError("invalid time format: %s" % (time_str))
 
-def number_to_nanos(numeric: str|int) -> int:
+
+def number_to_nanos_from_unix_epoch(numeric: str | int) -> int:
     """
     Converts a numeric value to nanoseconds from the Unix epoch.
-    The numeric value may be in seconds from epoch, milliseconds from epoch, or nanoseconds from epoch.
+
+    the numeric value may be in seconds from epoch, milliseconds from epoch, or nanoseconds from epoch.
 
     Args:
         numeric (str|int): The numeric value to convert.
@@ -223,10 +238,12 @@ def number_to_nanos(numeric: str|int) -> int:
         return numeric * SECONDS_TO_NANOSECONDS
     else:
         raise ValueError("numeric value must be non-negative: %d" % (numeric))
-    
+
+
 def number_to_iso8601(numeric: int) -> str:
     """
-    Converts a numeric value to an ISO 8601 formatted string.
+    Converts a numeric value to an ISO 8601 formatted time string.
+
     The numeric value may be in seconds from epoch, milliseconds from epoch, or nanoseconds from epoch (unix epoch).
 
     Args:
@@ -238,7 +255,9 @@ def number_to_iso8601(numeric: int) -> str:
     if numeric > 1_000_000_000_000_000_000:
         # assume nanoseconds
         seconds, nanoseconds = divmod(numeric, 1_000_000_000)
-        dt = datetime.fromtimestamp(seconds, tz=timezone.utc) + timedelta(microseconds=nanoseconds / 1000)
+        dt = datetime.fromtimestamp(seconds, tz=timezone.utc) + timedelta(
+            microseconds=nanoseconds / 1000
+        )
         return dt.isoformat()
     elif numeric > 1_000_000_000_000:
         # assume milliseconds
@@ -247,9 +266,10 @@ def number_to_iso8601(numeric: int) -> str:
         # assume seconds
         return datetime.fromtimestamp(numeric, tz=timezone.utc).isoformat()
     else:
-        raise ValueError("numeric value must be non-negative: %d" % (numeric))  
-    
-def float_to_epoch_nsec(f: float, utc: bool=True) -> int:
+        raise ValueError("numeric value must be non-negative: %d" % (numeric))
+
+
+def float_to_epoch_nsec(f: float, utc: bool = True) -> int:
     """
     Converts a floating-point number to nanoseconds since the Unix epoch.
 
@@ -259,10 +279,11 @@ def float_to_epoch_nsec(f: float, utc: bool=True) -> int:
     Returns:
         int: The number of nanoseconds since the Unix epoch.
     """
-    dt=datetime.fromtimestamp(f)
+    dt = datetime.fromtimestamp(f)
     return datetime_to_epoch_nsec(dt, utc=utc)
 
-def datetime_to_epoch_nsec(dt: datetime, utc: bool=True) -> int:
+
+def datetime_to_epoch_nsec(dt: datetime, utc: bool = True) -> int:
     """
     Converts a datetime object to the number of nanoseconds since the Unix epoch.
     Args:
@@ -284,10 +305,10 @@ def datetime_to_epoch_nsec(dt: datetime, utc: bool=True) -> int:
 def chrome_epoch_to_iso8601(timestamp: int) -> str:
     """
     Converts a chrome timestamp to an ISO 8601 formatted string.
-    
+
     Args:
         timestamp (int): timestamp to convert.
-        
+
     Returns:
         str: The ISO 8601 formatted string.
     """
@@ -295,19 +316,21 @@ def chrome_epoch_to_iso8601(timestamp: int) -> str:
     delta = timedelta(microseconds=timestamp)
     return (epoch_start + delta).isoformat()
 
+
 def chrome_epoch_to_millis(timestamp: int) -> int:
     """
     Converts a chrome timestamp to the number of milliseconds since the Unix epoch.
-    
+
     Args:
         timestamp (int): timestamp to convert.
-        
+
     Returns:
         int: The number of milliseconds since the Unix epoch.
     """
     epoch_start = datetime(1601, 1, 1, tzinfo=timezone.utc)
     delta = timedelta(microseconds=timestamp)
     return int((epoch_start + delta).timestamp() * 1000)
+
 
 def chrome_epoch_to_nanos(timestamp: int):
     """
@@ -319,23 +342,27 @@ def chrome_epoch_to_nanos(timestamp: int):
     """
     epoch_start = datetime(1601, 1, 1, tzinfo=timezone.utc)
     delta = timedelta(microseconds=timestamp)
-    return int((epoch_start+delta).timestamp()*1000000)*1000
+    return int((epoch_start + delta).timestamp() * 1000000) * 1000
+
 
 def nanos_to_iso8601(nanos: int) -> str:
     """
     Converts nanoseconds from the Unix epoch to an ISO 8601 formatted string.
-    
+
     Args:
         nanos (int): The number of nanoseconds since the Unix epoch.
-        
+
     Returns:
         str: The ISO 8601 formatted string.
     """
     seconds, nanoseconds = divmod(nanos, 1_000_000_000)
-    dt = datetime.fromtimestamp(seconds, tz=timezone.utc) + timedelta(microseconds=nanoseconds / 1000)
+    dt = datetime.fromtimestamp(seconds, tz=timezone.utc) + timedelta(
+        microseconds=nanoseconds / 1000
+    )
     return dt.isoformat()
 
-def string_to_epoch_nsec(
+
+def string_to_nanos_from_unix_epoch(
     s: str,
     utc: bool = True,
     dayfirst: bool = False,
@@ -343,7 +370,7 @@ def string_to_epoch_nsec(
     fuzzy: bool = False,
 ) -> int:
     """
-    Convert a human-readable string to nanoseconds from the Unix epoch.
+    convert an iso8601 time string to nanoseconds from the Unix epoch.
 
     NOTE: The string is parsed using dateutil.parser.parse(), so the valid formats are the ones listed in the dateutil documentation.
 
@@ -358,6 +385,7 @@ def string_to_epoch_nsec(
     # Parse the datetime string
     dt = parser.parse(s, dayfirst=dayfirst, yearfirst=yearfirst, fuzzy=fuzzy)
     return datetime_to_epoch_nsec(dt, utc=utc)
+
 
 def string_to_epoch_nsec_from_filepath(
     filename_or_path: str,
@@ -406,7 +434,7 @@ def string_to_epoch_nsec_from_filepath(
             return time_int * 1_000_000_000, False
 
     try:
-        ns = string_to_epoch_nsec(
+        ns = string_to_nanos_from_unix_epoch(
             timestr,
             utc=utc,
             dayfirst=dayfirst,
