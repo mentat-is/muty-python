@@ -119,7 +119,7 @@ def now_nsec() -> int:
     return ns
 
 
-def datetime_to_unix_millis(dt: datetime) -> int:
+def datetime_to_millis_from_unix_epoch(dt: datetime) -> int:
     """
     Converts a datetime object to milliseconds since the Unix epoch.
 
@@ -132,7 +132,7 @@ def datetime_to_unix_millis(dt: datetime) -> int:
     return int(dt.timestamp()) * 1000
 
 
-def unix_millis_to_datetime(msec: int, tz: timezone = timezone.utc) -> datetime:
+def millis_from_unix_epoch_to_datetime(msec: int, tz: timezone = timezone.utc) -> datetime:
     """
     Converts milliseconds since the Unix epoch to a datetime object.
 
@@ -269,7 +269,7 @@ def number_to_iso8601(numeric: int) -> str:
         raise ValueError("numeric value must be non-negative: %d" % (numeric))
 
 
-def float_to_epoch_nsec(f: float, utc: bool = True) -> int:
+def float_to_nanos_from_unix_epoch(f: float, utc: bool = True) -> int:
     """
     Converts a floating-point number to nanoseconds since the Unix epoch.
 
@@ -280,12 +280,13 @@ def float_to_epoch_nsec(f: float, utc: bool = True) -> int:
         int: The number of nanoseconds since the Unix epoch.
     """
     dt = datetime.fromtimestamp(f)
-    return datetime_to_epoch_nsec(dt, utc=utc)
+    return datetime_to_nanos_from_unix_epoch(dt, utc=utc)
 
 
-def datetime_to_epoch_nsec(dt: datetime, utc: bool = True) -> int:
+def datetime_to_nanos_from_unix_epoch(dt: datetime, utc: bool = True) -> int:
     """
     Converts a datetime object to the number of nanoseconds since the Unix epoch.
+
     Args:
         dt (datetime): The datetime object to convert.
         utc (bool, optional): Whether the datetime object is in UTC. Defaults to True.
@@ -317,7 +318,7 @@ def chrome_epoch_to_iso8601(timestamp: int) -> str:
     return (epoch_start + delta).isoformat()
 
 
-def chrome_epoch_to_millis(timestamp: int) -> int:
+def chrome_epoch_to_millis_from_unix_epoch(timestamp: int) -> int:
     """
     Converts a chrome timestamp to the number of milliseconds since the Unix epoch.
 
@@ -332,7 +333,7 @@ def chrome_epoch_to_millis(timestamp: int) -> int:
     return int((epoch_start + delta).timestamp() * 1000)
 
 
-def chrome_epoch_to_nanos(timestamp: int):
+def chrome_epoch_to_nanos_from_unix_epoch(timestamp: int):
     """
     Converts a chrome timestamp to the number of nanoseconds since the Unix epoch.
     Args:
@@ -340,26 +341,7 @@ def chrome_epoch_to_nanos(timestamp: int):
     Returns:
         int: The number of nanoseconds since the Unix epoch.
     """
-    epoch_start = datetime(1601, 1, 1, tzinfo=timezone.utc)
-    delta = timedelta(microseconds=timestamp)
-    return int((epoch_start + delta).timestamp() * 1000000) * 1000
-
-
-def nanos_to_iso8601(nanos: int) -> str:
-    """
-    Converts nanoseconds from the Unix epoch to an ISO 8601 formatted string.
-
-    Args:
-        nanos (int): The number of nanoseconds since the Unix epoch.
-
-    Returns:
-        str: The ISO 8601 formatted string.
-    """
-    seconds, nanoseconds = divmod(nanos, 1_000_000_000)
-    dt = datetime.fromtimestamp(seconds, tz=timezone.utc) + timedelta(
-        microseconds=nanoseconds / 1000
-    )
-    return dt.isoformat()
+    return chrome_epoch_to_millis_from_unix_epoch(timestamp) * 1000000
 
 
 def string_to_nanos_from_unix_epoch(
@@ -384,10 +366,10 @@ def string_to_nanos_from_unix_epoch(
     """
     # Parse the datetime string
     dt = parser.parse(s, dayfirst=dayfirst, yearfirst=yearfirst, fuzzy=fuzzy)
-    return datetime_to_epoch_nsec(dt, utc=utc)
+    return datetime_to_nanos_from_unix_epoch(dt, utc=utc)
 
 
-def string_to_epoch_nsec_from_filepath(
+def filename_to_nanos_from_unix_epoch(
     filename_or_path: str,
     separator: str = "_",
     idx: int = 0,
