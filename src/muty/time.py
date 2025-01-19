@@ -279,7 +279,7 @@ def float_to_nanos_from_unix_epoch(f: float, utc: bool = True) -> int:
     Returns:
         int: The number of nanoseconds since the Unix epoch.
     """
-    dt = datetime.fromtimestamp(f)
+    dt = datetime.fromtimestamp(f, tz=timezone.utc)
     return datetime_to_nanos_from_unix_epoch(dt, utc=utc)
 
 
