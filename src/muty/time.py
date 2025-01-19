@@ -5,7 +5,7 @@ time utilities
 import os
 import time
 from datetime import datetime, timezone, timedelta
-from dateutil import parser
+from dateutil import parser, tz
 import ntplib
 
 SECONDS_TO_NANOSECONDS = 1000000000
@@ -200,7 +200,8 @@ def ensure_iso8601(
     """
     try:
         # try to parse the string as a datetime object
-        dt = parser.parse(time_str, dayfirst=dayfirst, yearfirst=yearfirst, fuzzy=fuzzy)
+        dt = parser.parse(time_str, dayfirst=dayfirst, yearfirst=yearfirst,
+                          fuzzy=fuzzy, default=datetime.now(tz=tz.UTC))
         return dt.astimezone(timezone.utc).isoformat()
     except (ValueError, OverflowError):
         pass
@@ -365,7 +366,8 @@ def string_to_nanos_from_unix_epoch(
     @throws ParserError: If the timestamp cannot be converted.
     """
     # Parse the datetime string
-    dt = parser.parse(s, dayfirst=dayfirst, yearfirst=yearfirst, fuzzy=fuzzy)
+    dt = parser.parse(s, dayfirst=dayfirst, yearfirst=yearfirst,
+                      fuzzy=fuzzy, default=datetime.now(tz=tz.UTC))
     return datetime_to_nanos_from_unix_epoch(dt, utc=utc)
 
 
