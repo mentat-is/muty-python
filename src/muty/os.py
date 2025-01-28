@@ -1,4 +1,5 @@
 import multiprocessing
+import os
 import platform
 import signal
 import subprocess
@@ -25,7 +26,8 @@ def check_os(exclude: list = None):
         exclude = []
 
     if platform.system().lower() in exclude:
-        raise RuntimeError("Unsupported operating system: %s" % (platform.system()))
+        raise RuntimeError("Unsupported operating system: %s" %
+                           (platform.system()))
 
 
 def check_package_version(package_name: str, version_check: str = None) -> bool:
@@ -80,7 +82,7 @@ def check_package_version(package_name: str, version_check: str = None) -> bool:
 
         for op, func in operators.items():
             if version_check.startswith(op):
-                req_version = version_check[len(op) :].strip()
+                req_version = version_check[len(op):].strip()
                 req_tuple = _parse_version(req_version)
                 return req_tuple and func(pkg_tuple, req_tuple)
 
@@ -118,7 +120,8 @@ def check_and_install_package(package_name: str, version_check: str = None) -> N
         )
 
         # install
-        subprocess.check_call([sys.executable, "-m", "pip", "install", to_install])
+        subprocess.check_call(
+            [sys.executable, "-m", "pip", "install", to_install])
 
 
 def get_threads_per_core(logical=False) -> int:
@@ -150,3 +153,44 @@ def multiprocessing_fixes():
 
     # avoid zombies on processes exit
     signal.signal(signal.SIGCHLD, signal.SIG_IGN)
+
+
+def _child_handler(signum, frame):
+    """Reap zombie children"""
+    try:
+        while True:
+            pid, _ = os.waitpid(-1, os.WNOHANG)
+            if pid <= 0:
+                break
+    except ChildProcessError:
+        pass
+
+
+def respawn_current_process():
+    """
+    respawn the current process using fork() and execvp().    
+        """
+    # setup proper signal handling for platform
+    if platform.system() != 'Darwin':
+        signal.signal(signal.SIGCHLD, signal.SIG_IGN)
+    else:
+        signal.signal(signal.SIGCHLD, _child_handler)
+
+    # First fork
+    pid = os.fork()
+    if pid > 0:
+        os.kill(os.getpid(), signal.SIGKILL)
+
+    # decouple from parent
+    os.setsid()
+    os.umask(0)
+
+    # Second fork
+    pid = os.fork()
+    if pid > 0:
+        # kill parent
+        os.kill(os.getpid(), signal.SIGKILL)
+
+    # child continues
+    args = [sys.executable] + sys.argv
+    os.execvp(sys.executable, args)
