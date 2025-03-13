@@ -1,12 +1,10 @@
 [build-system]
-requires = ["setuptools>=60", "setuptools-scm>=8.0"]
+requires = ["setuptools>=60"]
 build-backend = "setuptools.build_meta"
-
-[tool.setuptools_scm]
 
 [project]
 name = "muty"
-dynamic = ["version"]
+version = "1.0.0"                                         # to be changed by CI
 authors = [{ name = "Mentat", email = "info@mentat.is" }]
 description = "our internal utilities :)"
 readme = "README.md"
