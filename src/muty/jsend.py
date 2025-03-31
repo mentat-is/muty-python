@@ -9,12 +9,11 @@ from enum import StrEnum
 from pprint import pprint
 from typing import Any, Optional
 
-from pydantic import BaseModel, ConfigDict, Field
-
 import muty.log
 import muty.string
 import muty.time
 from muty.log import MutyLogger
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class JSendException(Exception):
@@ -25,7 +24,6 @@ class JSendException(Exception):
     def __init__(
         self,
         message: str = None,
-        ex: Exception = None,
         req_id: str = None,
         status_code: int = 500,
     ):
@@ -34,24 +32,33 @@ class JSendException(Exception):
 
         Args:
             message (str, optional): The error message. Defaults to None.
-            ex (Exception, optional): The originating exception object. Defaults to None.
             req_id (str, optional): The request ID. Defaults to None.
             status_code (int, optional): The HTTP status code. Defaults to 500.
         """
         self.req_id = req_id
         self.status_code = status_code
-        self.ex = ex
 
         msg: str = ""
         if message:
             msg = message
-        if ex:
-            msg += " (" + str(ex) + ")"
-
-        if not msg:
+        else:
             msg = "ERROR!"
 
         super().__init__(msg)
+
+    def to_string(self, with_full_traceback: bool = False) -> str:
+        """
+        converts the exception to a string.
+
+        Args:
+            with_full_traceback (bool): Whether to include the full traceback. Defaults to False.
+        Returns:
+            str: The string representation of the exception.
+        """
+
+        s = muty.log.exception_to_string(
+            self, with_full_traceback=with_full_traceback)
+        return s
 
 
 class JSendResponseStatus(StrEnum):
