@@ -6,6 +6,7 @@ import os
 import time
 from datetime import datetime, timezone, timedelta
 from dateutil import parser, tz
+from dateutil.parser._parser import ParserError
 import ntplib
 
 SECONDS_TO_NANOSECONDS = 1000000000
@@ -170,11 +171,12 @@ def check_iso8601(s: str) -> bool:
         bool: True if the string is a valid ISO 8601 formatted string, False otherwise.
     """
     try:
-        parser.parse(s)
+        # attempt to parse the string as ISO 8601
+        parser.isoparse(s)
         return True
-    except:
+    except (ParserError, ValueError):
         return False
-
+    
 
 def ensure_iso8601(
     time_str: str, dayfirst: bool = None, yearfirst: bool = None, fuzzy: bool = None
@@ -198,6 +200,9 @@ def ensure_iso8601(
     Returns:
         str: The ISO 8601 formatted string.
     """
+    # check if time_str is in iso8601 format
+    if check_iso8601(time_str):
+        return time_str
     try:
         # try to parse the string as a datetime object
         dt = parser.parse(time_str, dayfirst=dayfirst, yearfirst=yearfirst,
