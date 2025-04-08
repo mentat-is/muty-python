@@ -4,10 +4,13 @@ time utilities
 
 import os
 import time
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
+
+import ntplib
 from dateutil import parser, tz
 from dateutil.parser._parser import ParserError
-import ntplib
+
+from muty.log import MutyLogger
 
 SECONDS_TO_NANOSECONDS = 1000000000
 NANOSECONDS_TO_MILLISECONDS = 1000000
@@ -133,7 +136,9 @@ def datetime_to_millis_from_unix_epoch(dt: datetime) -> int:
     return int(dt.timestamp()) * 1000
 
 
-def millis_from_unix_epoch_to_datetime(msec: int, tz: timezone = timezone.utc) -> datetime:
+def millis_from_unix_epoch_to_datetime(
+    msec: int, tz: timezone = timezone.utc
+) -> datetime:
     """
     Converts milliseconds since the Unix epoch to a datetime object.
 
@@ -170,13 +175,17 @@ def check_iso8601(s: str) -> bool:
     Returns:
         bool: True if the string is a valid ISO 8601 formatted string, False otherwise.
     """
+    if "T" not in s:
+        # if there is no T in the string, it is not iso8601
+        return False
+
     try:
         # attempt to parse the string as ISO 8601
         parser.isoparse(s)
         return True
     except (ParserError, ValueError):
         return False
-    
+
 
 def ensure_iso8601(
     time_str: str, dayfirst: bool = None, yearfirst: bool = None, fuzzy: bool = None
@@ -202,11 +211,17 @@ def ensure_iso8601(
     """
     # check if time_str is in iso8601 format
     if check_iso8601(time_str):
+        #MutyLogger.get_instance().warning("time_str is already in iso8601 format: %s" % (time_str))
         return time_str
     try:
         # try to parse the string as a datetime object
-        dt = parser.parse(time_str, dayfirst=dayfirst, yearfirst=yearfirst,
-                          fuzzy=fuzzy, default=datetime.now(tz=tz.UTC))
+        dt = parser.parse(
+            time_str,
+            dayfirst=dayfirst,
+            yearfirst=yearfirst,
+            fuzzy=fuzzy,
+            default=datetime.now(tz=tz.UTC),
+        )
         return dt.astimezone(timezone.utc).isoformat()
     except (ValueError, OverflowError):
         pass
@@ -371,8 +386,13 @@ def string_to_nanos_from_unix_epoch(
     @throws ParserError: If the timestamp cannot be converted.
     """
     # Parse the datetime string
-    dt = parser.parse(s, dayfirst=dayfirst, yearfirst=yearfirst,
-                      fuzzy=fuzzy, default=datetime.now(tz=tz.UTC))
+    dt = parser.parse(
+        s,
+        dayfirst=dayfirst,
+        yearfirst=yearfirst,
+        fuzzy=fuzzy,
+        default=datetime.now(tz=tz.UTC),
+    )
     return datetime_to_nanos_from_unix_epoch(dt, utc=utc)
 
 
