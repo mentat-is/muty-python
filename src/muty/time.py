@@ -97,7 +97,10 @@ def now_ntp_msec(server: str = "pool.ntp.org") -> int:
     """
     client = ntplib.NTPClient()
     r = client.request(server, version=3)
-    t = r.orig_time * 1000
+    t = r.tx_time * 1000
+
+    # cut the fractional part
+    t = int(t)
     return t
 
 
