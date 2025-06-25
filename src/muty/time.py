@@ -12,9 +12,10 @@ from dateutil.parser._parser import ParserError
 
 from muty.log import MutyLogger
 
-SECONDS_TO_NANOSECONDS = 1000000000
-NANOSECONDS_TO_MILLISECONDS = 1000000
-MILLISECONDS_TO_NANOSECONDS = 1000000
+MICROSECONDS_TO_NANOSECONDS = 1000
+MILLISECONDS_TO_NANOSECONDS = 1000_000
+SECONDS_TO_NANOSECONDS = 1000_000_000
+NANOSECONDS_TO_MILLISECONDS = MILLISECONDS_TO_NANOSECONDS
 
 
 def time_definition_from_milliseconds(milliseconds: float) -> str:
@@ -140,18 +141,18 @@ def datetime_to_millis_from_unix_epoch(dt: datetime) -> int:
 
 
 def millis_from_unix_epoch_to_datetime(
-    msec: int, tz: timezone = timezone.utc
+    msec: int, tzn: timezone = timezone.utc
 ) -> datetime:
     """
     Converts milliseconds since the Unix epoch to a datetime object.
 
     Args:
         msec (int): Milliseconds since the Unix epoch.
-        tz (timezone, optional): Timezone to use. Defaults to timezone.utc.
+        tzn (timezone, optional): Timezone to use. Defaults to timezone.utc.
     Returns:
         datetime: Datetime object.
     """
-    dt = datetime.fromtimestamp(msec / 1000.0, tz=timezone.utc)
+    dt = datetime.fromtimestamp(msec / 1000.0, tz=tzn)
     return dt
 
 
@@ -201,6 +202,7 @@ def ensure_iso8601(
     - iso8601
     - timestamp (seconds from epoch)
     - timestamp (milliseconds from epoch)
+    - timestamp (microseconds from epoch)
     - timestamp (nanoseconds from epoch)
     - anything that dateutil.parser.parse() can handle
 
@@ -214,33 +216,29 @@ def ensure_iso8601(
     """
     # check if time_str is in iso8601 format
     if check_iso8601(time_str):
-        #MutyLogger.get_instance().warning("time_str is already in iso8601 format: %s" % (time_str))
+        # MutyLogger.get_instance().warning("time_str is already in iso8601 format: %s" % (time_str))
         return time_str
-    try:
-        # try to parse the string as a datetime object
-        dt = parser.parse(
-            time_str,
-            dayfirst=dayfirst,
-            yearfirst=yearfirst,
-            fuzzy=fuzzy,
-            default=datetime.now(tz=tz.UTC),
-        )
-        return dt.astimezone(timezone.utc).isoformat()
-    except (ValueError, OverflowError):
-        pass
 
     if time_str.isdigit():
         numeric = int(time_str)
         return number_to_iso8601(numeric)
 
-    raise ValueError("invalid time format: %s" % (time_str))
+    # try to parse the string as a datetime object
+    dt = parser.parse(
+        time_str,
+        dayfirst=dayfirst,
+        yearfirst=yearfirst,
+        fuzzy=fuzzy,
+        default=datetime.now(tz=tz.UTC),
+    )
+    return dt.astimezone(timezone.utc).isoformat()
 
 
 def number_to_nanos_from_unix_epoch(numeric: str | int) -> int:
     """
     Converts a numeric value to nanoseconds from the Unix epoch.
 
-    the numeric value may be in seconds from epoch, milliseconds from epoch, or nanoseconds from epoch.
+    the numeric value may be in seconds/milliseconds/microseconds/nanoseconds from the unix epoch.
 
     Args:
         numeric (str|int): The numeric value to convert.
@@ -252,8 +250,11 @@ def number_to_nanos_from_unix_epoch(numeric: str | int) -> int:
         numeric = int(numeric)
 
     if numeric > 1_000_000_000_000_000_000:
-        # assume nanoseconds
+        # assume nanoseconds, leave as is
         return numeric
+    elif numeric > 1_000_000_000_000_000:
+        # assume microseconds
+        return numeric * MICROSECONDS_TO_NANOSECONDS
     elif numeric > 1_000_000_000_000:
         # assume milliseconds
         return numeric * MILLISECONDS_TO_NANOSECONDS
@@ -268,7 +269,7 @@ def number_to_iso8601(numeric: int) -> str:
     """
     Converts a numeric value to an ISO 8601 formatted time string.
 
-    The numeric value may be in seconds from epoch, milliseconds from epoch, or nanoseconds from epoch (unix epoch).
+    The numeric value may be in seconds/milliseconds/microseconds/nanoseconds from the unix epoch.
 
     Args:
         numeric (int): The numeric value to convert.
@@ -281,6 +282,13 @@ def number_to_iso8601(numeric: int) -> str:
         seconds, nanoseconds = divmod(numeric, 1_000_000_000)
         dt = datetime.fromtimestamp(seconds, tz=timezone.utc) + timedelta(
             microseconds=nanoseconds / 1000
+        )
+        return dt.isoformat()
+    elif numeric > 1_000_000_000_000_000:
+        # assume microseconds
+        seconds, microseconds = divmod(numeric, 1_000_000)
+        dt = datetime.fromtimestamp(seconds, tz=timezone.utc) + timedelta(
+            microseconds=microseconds
         )
         return dt.isoformat()
     elif numeric > 1_000_000_000_000:
@@ -436,14 +444,20 @@ def filename_to_nanos_from_unix_epoch(
     if timestr.isnumeric():
         time_int = int(timestr)
         # check if time_int is in seconds, milliseconds, microseconds, nanoseconds. convert it to nanoseconds
-        if time_int > 1_000_000_000_000:
+        if time_int > 1_000_000_000_000_000_000:
+            # assume nanoseconds, leave as is
             return time_int, False
-        elif time_int > 1_000_000_000:
-            return time_int * 1_000, False
-        elif time_int > 1_000_000:
-            return time_int * 1_000_000, False
-        elif time_int > 1_000:
-            return time_int * 1_000_000_000, False
+        elif time_int > 1_000_000_000_000_000:
+            # assoume microseconds
+            return time_int * MICROSECONDS_TO_NANOSECONDS, False
+        elif time_int > 1_000_000_000_000:
+            # assume milliseconds
+            return time_int * MILLISECONDS_TO_NANOSECONDS, False
+        elif time_int >= 0:
+            # else, assume seconds
+            return time_int * SECONDS_TO_NANOSECONDS, False
+
+        raise ValueError("numeric value must be non-negative: %d" % (time_int))
 
     try:
         ns = string_to_nanos_from_unix_epoch(
