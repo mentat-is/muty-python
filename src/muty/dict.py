@@ -1,7 +1,7 @@
 """dict utility functions.
 """
 
-import json
+import orjson
 from typing import Any
 
 import json5
@@ -21,18 +21,23 @@ def from_json_file(path: str) -> dict:
     return js
 
 
-def to_json_file(path, js, indent=2) -> None:
+def to_json_file(path, js, indent: bool=False) -> None:
     """!
     writes json to file
 
     @param path path to the file to be created
     @param js dict to be written
-    @param indent optional indentantion spaces, default=2
+    @param indent optional indentantion on/off
     """
 
     # write
-    with open(path, "w") as f:
-        jjs = json.dumps(js, indent=indent)
+    if indent:
+        option=orjson.OPT_INDENT_2
+    else:
+        option=None
+
+    with open(path, "wb") as f:
+        jjs = orjson.dumps(js, option=option)
         f.write(jjs)
 
 

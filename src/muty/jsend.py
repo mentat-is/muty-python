@@ -4,7 +4,7 @@ JSend is a specification for building JSON APIs that respond in a consistent for
 For more information, see https://github.com/omniti-labs/jsend.
 """
 
-import json
+import orjson
 from enum import StrEnum
 from pprint import pprint
 from typing import Any, Optional
@@ -127,7 +127,7 @@ class JSendResponse(BaseModel):
         if data is not None:
             js["data"] = data
 
-        MutyLogger.get_instance().info(json.dumps(js, indent=2))
+        MutyLogger.get_instance().info(orjson.dumps(js, option=orjson.OPT_INDENT_2))
         return js
 
     @staticmethod
@@ -145,7 +145,7 @@ class JSendResponse(BaseModel):
         js["timestamp_msec"] = muty.time.now_msec()
         if req_id:
             js["req_id"] = req_id
-        MutyLogger.get_instance().info(json.dumps(js, indent=2))
+        MutyLogger.get_instance().info(orjson.dumps(js, option=orjson.OPT_INDENT_2))
         return js
 
     @staticmethod
@@ -195,8 +195,8 @@ class JSendResponse(BaseModel):
                 d["__error"] = {}
             d["__error"][k] = v
 
-        # MutyLogger.get_instance().error(json.dumps(js, indent=2))
-        pprint(json.dumps(js, indent=2))
+        # MutyLogger.get_instance().error(orjson.dumps(js, option=orjson.OPT_INDENT_2))
+        pprint(orjson.dumps(js, option=orjson.OPT_INDENT_2).decode())
         return js
 
     @staticmethod
