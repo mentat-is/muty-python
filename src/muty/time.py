@@ -404,6 +404,11 @@ def string_to_nanos_from_unix_epoch(
         fuzzy=fuzzy,
         default=datetime.now(tz=tz.UTC),
     )
+
+    # if year is before unix epoch, return epoch time in nanoseconds
+    if dt.year < 1970:
+        return 0
+    
     return datetime_to_nanos_from_unix_epoch(dt, utc=utc)
 
 
