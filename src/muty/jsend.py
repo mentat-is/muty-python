@@ -127,7 +127,7 @@ class JSendResponse(BaseModel):
         if data is not None:
             js["data"] = data
 
-        MutyLogger.get_instance().info(orjson.dumps(js, option=orjson.OPT_INDENT_2))
+        MutyLogger.get_instance().info(orjson.dumps(js, option=orjson.OPT_INDENT_2).decode())
         return js
 
     @staticmethod
@@ -145,7 +145,7 @@ class JSendResponse(BaseModel):
         js["timestamp_msec"] = muty.time.now_msec()
         if req_id:
             js["req_id"] = req_id
-        MutyLogger.get_instance().info(orjson.dumps(js, option=orjson.OPT_INDENT_2))
+        MutyLogger.get_instance().info(orjson.dumps(js, option=orjson.OPT_INDENT_2).decode())
         return js
 
     @staticmethod
@@ -195,7 +195,7 @@ class JSendResponse(BaseModel):
                 d["__error"] = {}
             d["__error"][k] = v
 
-        # MutyLogger.get_instance().error(orjson.dumps(js, option=orjson.OPT_INDENT_2))
+        # MutyLogger.get_instance().error(orjson.dumps(js, option=orjson.OPT_INDENT_2).decode())
         pprint(orjson.dumps(js, option=orjson.OPT_INDENT_2).decode())
         return js
 
