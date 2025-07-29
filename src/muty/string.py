@@ -9,14 +9,13 @@ import time
 import uuid
 
 
-def make_shorter(s: str, max_len: int = 50, ellipsis: str = "...") -> str:
+def make_shorter(s: str, max_len: int = 50) -> str:
     """
     Shorten a string to a maximum length, adding an ellipsis if it is shortened.
 
     Args:
         s (str): The input string.
         max_len (int, optional): The maximum length of the string. Defaults to 50.
-        ellipsis (str, optional): The ellipsis to add if the string is shortened. Defaults to "...".
 
     Returns:
         str: The shortened string.
@@ -24,9 +23,16 @@ def make_shorter(s: str, max_len: int = 50, ellipsis: str = "...") -> str:
     if s is None:
         return ""
 
-    if len(s) <= max_len:
+    len_s = len(s)
+    if len_s <= max_len:
         return s
-    return s[: max_len - len(ellipsis)] + ellipsis
+
+    # build string with ellipsis and truncated number of characters
+    ss = s[:max_len]
+    truncated_len = len_s - len(ss)
+    if truncated_len > 0:
+        ss += f"(...+{truncated_len})"
+    return ss
 
 
 def ensure_no_space_no_special(s: str, lowercase: bool = True) -> str:

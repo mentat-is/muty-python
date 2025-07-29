@@ -41,6 +41,7 @@ class MutyLogger(logging.Logger):
         format_string: str = None,
         custom_field_styles: dict = None,
         use_multiline_formatter: bool = True,
+        **kwargs
     ) -> "MutyLogger":
         """
         returns the singleton instance
