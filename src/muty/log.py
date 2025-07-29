@@ -74,6 +74,7 @@ class MutyLogger(logging.Logger):
         custom_field_styles: dict = None,
         use_multiline_formatter: bool = True,
         log_to_syslog: bool = False,
+        **kwargs,
     ) -> "MutyLogger":
         """
         get the singleton logger instance, if it does not exist, create it
@@ -88,6 +89,7 @@ class MutyLogger(logging.Logger):
             custom_field_styles (dict, optional): a dictionary of custom field styles for coloredlogs. Defaults to None (uses default).
             use_multiline_formatter (bool, optional): whether to use a multiline formatter or not. Defaults to False.
             log_to_syslog (bool, optional): whether to use syslog or not. Defaults to False, ignored if logger_file_path is provided.
+            **kwargs: additional parameters to pass to configure_logger()
         """
         if not hasattr(cls, "_instance"):
             if not name:
