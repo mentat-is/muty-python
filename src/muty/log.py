@@ -80,7 +80,7 @@ class MutyLogger(logging.Logger):
         get the singleton logger instance, if it does not exist, create it
 
         Args:
-            name (str, optional): the name of the logger. Defaults to None (uses the global Logger).
+            name (str, optional): the name of the logger, mandatory on the first call. Defaults to None (uses the global Logger).
             logger_file_path (str, optional): path to the logger file. Defaults to None (log to stdout only), ignored if log_to_syslog is True.
             level (int, optional): the debug level. Defaults to logging.DEBUG.
             max_log_size_mb (int, optional): the maximum size of each log file in MB. Defaults to 4.
@@ -93,7 +93,7 @@ class MutyLogger(logging.Logger):
         """
         if not hasattr(cls, "_instance"):
             if not name:
-                raise ValueError("name must be provided for the first logger instance")
+                raise ValueError("name must be provided on first call")
             cls._instance = logging.getLogger(name)
 
             # save the logger configuration as class variables
