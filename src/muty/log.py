@@ -73,7 +73,7 @@ class MutyLogger(logging.Logger):
         format_string: str = None,
         custom_field_styles: dict = None,
         use_multiline_formatter: bool = True,
-        log_to_syslog: tuple[str,str] = None,
+        log_to_syslog: tuple[str, str] = None,
         **kwargs,
     ) -> "MutyLogger":
         """
@@ -126,7 +126,7 @@ class MutyLogger(logging.Logger):
         format_string: str = None,
         custom_field_styles: dict = None,
         use_multiline_formatter: bool = True,
-        log_to_syslog: tuple[str,str] = None,
+        log_to_syslog: tuple[str, str] = None,
         **kwargs,
     ) -> None:
         """
@@ -170,22 +170,41 @@ class MutyLogger(logging.Logger):
             if log_to_syslog[0] is not None:
                 # use provided syslog address
                 address = log_to_syslog[0]
+                if ":" in address:
+                    # assume host:port, turn to a tuple
+                    address = tuple(address.split(":", 1))
             else:
                 # default syslog address
-                address = (
-                    "/dev/log"
-                    if os.path.exists("/dev/log")
-                    else "/var/run/syslog"
-                )
+                if sys.platform == "darwin":
+                    # try different macOS syslog paths
+                    macos_paths = ["/var/run/syslog", "/dev/log"]
+                    address = None
+                    for path in macos_paths:
+                        if os.path.exists(path):
+                            address = path
+                            break
+                    if address is None:
+                        # fallback to UDP if no socket found
+                        address = ("localhost", 514)
+                        print("***warning***: using UDP fallback for syslog on macOS")
+                else:
+                    linux_syslog_path = (
+                        "/var/log/syslog"
+                        if os.path.exists("/var/log/syslog")
+                        else "/var/run/syslog"
+                    )
+                    address = linux_syslog_path
+
             if log_to_syslog[1] is not None:
                 # use provided syslog facility
-                facility = log_to_syslog[1]
+                facility = int(log_to_syslog[1])
             else:
                 # default syslog facility
                 facility = SysLogHandler.LOG_LOCAL0
 
             syslog_handler = SysLogHandler(
-                address=address, facility=facility,
+                address=address,
+                facility=facility,
             )
             syslog_handler.setLevel(level)
             formatter = TruncateFormatter(fmt=log_format, max_length=1000)
@@ -195,6 +214,12 @@ class MutyLogger(logging.Logger):
             syslog_handler.addFilter(_taskname_filter)
             if syslog_handler not in l.handlers:
                 l.handlers.append(syslog_handler)
+                l.debug(
+                    "syslog handler configured for address: %s, facility: %s",
+                    address,
+                    facility,
+                )
+
         elif logger_file_path:
             rotating_handler = RotatingFileHandler(
                 filename=logger_file_path,
@@ -243,22 +268,37 @@ class MutyLogger(logging.Logger):
         l.debug('logger "%s" configured!' % (l))
 
 
-def _thread_id_filter(record) -> int:
-    # get real(native) thread id in log messages
+def _thread_id_filter(record: logging.LogRecord) -> bool:
+    """
+    adds native thread id to log record
+
+    Args:
+        record (logging.LogRecord): the log record to modify
+
+    Returns:
+        bool: always returns True to allow the record through
+    """
     record.thread_id = threading.get_native_id()
-    return record
+    return True
 
 
-def _taskname_filter(record) -> int:
-    # record.task = ''
-    # return record
+def _taskname_filter(record) -> bool:
+    """
+    adds current asyncio task name to log record
+
+    Args:
+        record (logging.LogRecord): the log record to modify
+
+    Returns:
+        bool: always returns True to allow the record through
+    """
     # assign taskname if any
     try:
         l = asyncio.get_event_loop()
     except:
         # no event loop, no task
         record.task = ""
-        return record
+        return True
 
     if not l.is_running():
         record.task = ""
@@ -268,12 +308,21 @@ def _taskname_filter(record) -> int:
             record.task = task.get_name() if task is not None else "-"
         except:
             record.task = ""
-            return record
+            return True
 
-    return record
+    return True
 
 
-def _path_filter(record) -> int:
+def _path_filter(record) -> bool:
+    """
+    converts absolute path to relative path in log record
+
+    Args:
+        record (logging.LogRecord): the log record to modify
+
+    Returns:
+        bool: always returns True to allow the record through
+    """
     # get relative path in log messages
     pathname = record.pathname
     tmp = None
@@ -285,7 +334,7 @@ def _path_filter(record) -> int:
             tmp = os.path.relpath(pathname, path)
             record.pathname = tmp
             break
-    return record
+    return True
 
 
 def exception_to_string(ex: Exception, with_full_traceback: bool = False) -> str:
