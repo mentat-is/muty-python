@@ -73,7 +73,7 @@ class MutyLogger(logging.Logger):
         format_string: str = None,
         custom_field_styles: dict = None,
         use_multiline_formatter: bool = True,
-        log_to_syslog: bool = False,
+        log_to_syslog: tuple[str,str] = None,
         **kwargs,
     ) -> "MutyLogger":
         """
@@ -88,7 +88,9 @@ class MutyLogger(logging.Logger):
             format_string (str, optional): the log format string. Defaults to None (uses default).
             custom_field_styles (dict, optional): a dictionary of custom field styles for coloredlogs. Defaults to None (uses default).
             use_multiline_formatter (bool, optional): whether to use a multiline formatter or not. Defaults to False.
-            log_to_syslog (bool, optional): whether to use syslog or not. Defaults to False, ignored if logger_file_path is provided.
+            log_to_syslog (tuple[str,str], optional): if set, logs to syslog at the specified address and facility.
+                if (None, None) is passed, it defaults to ("/var/log" or "/var/run/syslog" depending what is available, "LOG_USER").
+                cannot be used with logger_file_path.
             **kwargs: additional parameters to pass to configure_logger()
         """
         if not hasattr(cls, "_instance"):
@@ -124,23 +126,11 @@ class MutyLogger(logging.Logger):
         format_string: str = None,
         custom_field_styles: dict = None,
         use_multiline_formatter: bool = True,
-        log_to_syslog: bool = False,
+        log_to_syslog: tuple[str,str] = None,
         **kwargs,
     ) -> None:
         """
         reconfigure the process logger instance with the given parameters
-
-        Args:
-            name (str, optional): the name of the logger. Defaults to None (uses the global Logger).
-            logger_file_path (str, optional): path to the logger file. Defaults to None (log to stdout only), cannot be used with log_to_syslog.
-            level (int, optional): the debug level. Defaults to logging.DEBUG.
-            max_log_size_mb (int, optional): the maximum size of each log file in MB. Defaults to 4.
-            max_kept_log (int, optional): the maximum number of log files to keep. Defaults to 10.
-            format_string (str, optional): the log format string. Defaults to None (uses default).
-            custom_field_styles (dict, optional): a dictionary of custom field styles for coloredlogs. Defaults to None (uses default).
-            use_multiline_formatter (bool, optional): whether to use a multiline formatter or not. Defaults to False.
-            log_to_syslog (bool, optional): whether to use syslog or not. Defaults to False, cannot be used with logger_file_path.
-            **kwargs: additional parameters to pass to configure_logger()
         """
         if log_to_syslog and logger_file_path:
             raise ValueError("syslog and logger_file_path cannot be used together")
@@ -174,8 +164,28 @@ class MutyLogger(logging.Logger):
             l.handlers.append(stdout_handler)
 
         if log_to_syslog:
+            # configure syslog handler
+            address: str = None
+            facility: str = None
+            if log_to_syslog[0] is not None:
+                # use provided syslog address
+                address = log_to_syslog[0]
+            else:
+                # default syslog address
+                address = (
+                    "/dev/log"
+                    if os.path.exists("/dev/log")
+                    else "/var/run/syslog"
+                )
+            if log_to_syslog[1] is not None:
+                # use provided syslog facility
+                facility = log_to_syslog[1]
+            else:
+                # default syslog facility
+                facility = SysLogHandler.LOG_LOCAL0
+
             syslog_handler = SysLogHandler(
-                address="/dev/log" if os.path.exists("/dev/log") else "/var/run/syslog",
+                address=address, facility=facility,
             )
             syslog_handler.setLevel(level)
             formatter = TruncateFormatter(fmt=log_format, max_length=1000)
