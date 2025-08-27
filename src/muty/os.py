@@ -4,10 +4,12 @@ import platform
 import signal
 import subprocess
 import sys
+import uuid
 
 import psutil
 from importlib.metadata import PackageNotFoundError
 from muty.log import MutyLogger
+import muty.crypto
 from importlib.metadata import version
 
 
@@ -26,8 +28,7 @@ def check_os(exclude: list = None):
         exclude = []
 
     if platform.system().lower() in exclude:
-        raise RuntimeError("Unsupported operating system: %s" %
-                           (platform.system()))
+        raise RuntimeError("Unsupported operating system: %s" % (platform.system()))
 
 
 def check_package_version(package_name: str, version_check: str = None) -> bool:
@@ -82,7 +83,7 @@ def check_package_version(package_name: str, version_check: str = None) -> bool:
 
         for op, func in operators.items():
             if version_check.startswith(op):
-                req_version = version_check[len(op):].strip()
+                req_version = version_check[len(op) :].strip()
                 req_tuple = _parse_version(req_version)
                 return req_tuple and func(pkg_tuple, req_tuple)
 
@@ -120,8 +121,7 @@ def check_and_install_package(package_name: str, version_check: str = None) -> N
         )
 
         # install
-        subprocess.check_call(
-            [sys.executable, "-m", "pip", "install", to_install])
+        subprocess.check_call([sys.executable, "-m", "pip", "install", to_install])
 
 
 def get_threads_per_core(logical=False) -> int:
@@ -168,10 +168,10 @@ def _child_handler(signum, frame):
 
 def respawn_current_process():
     """
-    respawn the current process using fork() and execvp().    
-        """
+    respawn the current process using fork() and execvp().
+    """
     # setup proper signal handling for platform
-    if platform.system() != 'Darwin':
+    if platform.system() != "Darwin":
         signal.signal(signal.SIGCHLD, signal.SIG_IGN)
     else:
         signal.signal(signal.SIGCHLD, _child_handler)
@@ -194,3 +194,74 @@ def respawn_current_process():
     # child continues
     args = [sys.executable] + sys.argv
     os.execvp(sys.executable, args)
+
+
+def get_machine_fingerprint(print_components: bool = False) -> bytes:
+    """
+    returns a fingerprint of the current system built from more stable characteristics:
+    - uname fields
+    - mac address
+    - CPU info from /proc/cpuinfo (model/vendor)
+    - BIOS/DMI fields from /sys/class/dmi/id
+
+    Args:
+        print_components (bool, optional): print fingerprint components on stdout, for debugging. Defaults to False.
+
+    :return: 32 bytes hash
+    """
+    sy = platform.uname()
+    mac = uuid.getnode()
+
+    parts = [
+        sy.system,
+        sy.node,
+        sy.machine,
+        str(mac),
+    ]
+
+    # add CPU info (model name, vendor) from /proc/cpuinfo if available
+    try:
+        with open("/proc/cpuinfo", "r", encoding="utf-8", errors="ignore") as f:
+            cpuinfo = f.read()
+        model = ""
+        vendor = ""
+        for line in cpuinfo.splitlines():
+            if not model and line.lower().startswith("model name"):
+                model = line.split(":", 1)[1].strip()
+            if not vendor and line.lower().startswith("vendor_id"):
+                vendor = line.split(":", 1)[1].strip()
+            if model and vendor:
+                break
+        parts.extend([model, vendor])
+    except Exception:
+        pass
+
+    # add BIOS/DMI information from sysfs if available
+    try:
+        dmi_dir = "/sys/class/dmi/id"
+        if os.path.isdir(dmi_dir):
+            dmi_fields = (
+                "bios_vendor",
+                "board_name",
+                "board_serial",
+                "product_name",
+                "product_serial",
+                "product_uuid",
+            )
+            for fname in dmi_fields:
+                fpath = os.path.join(dmi_dir, fname)
+                if os.path.isfile(fpath):
+                    try:
+                        with open(fpath, "r", encoding="utf-8", errors="ignore") as f:
+                            val = f.read().strip()
+                        if val:
+                            parts.append(val)
+                    except Exception:
+                        pass
+    except Exception:
+        pass
+
+    fp = "|".join([p for p in parts if p is not None and p != ""])
+    if print_components:
+        print("[.] fingerprint components:\n%s" % (fp))
+    return muty.crypto.hash_sha256(fp.encode("utf-8"), return_bytes=True)
