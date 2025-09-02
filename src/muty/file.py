@@ -295,29 +295,39 @@ def list_directory(
     return paths
 
 
-async def copy_file_async(source_path: str, destination_path: str) -> None:
+async def copy_file_async(
+    source_path: str, destination_path: str, overwrite: bool = True
+) -> None:
     """
-    copy a file from source_path to destination_path (async)
+    copy a file from source_path to destination_path (async), overwriting if exists.
 
     Args:
         source_path (str): The path of the source file.
         destination_path (str): The path of the destination file.
+        overwrite (bool, optional): Whether to overwrite the destination file if it exists. Defaults to True.
     Returns:
         None
     """
+    if not overwrite:
+        if await exists_async(destination_path):
+            raise FileExistsError("file %s already exists" % (destination_path))
     await aioshutil.copy2(source_path, destination_path)
 
 
-def copy_file(source_path: str, destination_path: str) -> None:
+def copy_file(source_path: str, destination_path: str, overwrite: bool = True) -> None:
     """
-    copy a file from source_path to destination_path.
+    copy a file from source_path to destination_path, overwriting if exists.
 
     Args:
         source_path (str): The path of the source file.
         destination_path (str): The path of the destination file.
+        overwrite (bool, optional): Whether to overwrite the destination file if it exists. Defaults to True.
     Returns:
         None
     """
+    if not overwrite:
+        if exists(destination_path):
+            raise FileExistsError("file %s already exists" % (destination_path))
     shutil.copy2(source_path, destination_path)
 
 

@@ -56,8 +56,7 @@ class JSendException(Exception):
             str: The string representation of the exception.
         """
 
-        s = muty.log.exception_to_string(
-            self, with_full_traceback=with_full_traceback)
+        s = muty.log.exception_to_string(self, with_full_traceback=with_full_traceback)
         return s
 
 
@@ -127,7 +126,9 @@ class JSendResponse(BaseModel):
         if data is not None:
             js["data"] = data
 
-        MutyLogger.get_instance().info(orjson.dumps(js, option=orjson.OPT_INDENT_2).decode())
+        MutyLogger.get_instance().info(
+            orjson.dumps(js, option=orjson.OPT_INDENT_2).decode()
+        )
         return js
 
     @staticmethod
@@ -145,7 +146,9 @@ class JSendResponse(BaseModel):
         js["timestamp_msec"] = muty.time.now_msec()
         if req_id:
             js["req_id"] = req_id
-        MutyLogger.get_instance().info(orjson.dumps(js, option=orjson.OPT_INDENT_2).decode())
+        MutyLogger.get_instance().info(
+            orjson.dumps(js, option=orjson.OPT_INDENT_2).decode()
+        )
         return js
 
     @staticmethod
@@ -153,6 +156,7 @@ class JSendResponse(BaseModel):
         req_id: str = None,
         ex: Exception | dict | str = None,
         data: dict = None,
+        full_exception_traceback: bool = True,
         **kwargs,
     ) -> dict:
         """
@@ -162,6 +166,7 @@ class JSendResponse(BaseModel):
             req_id (str): The request ID to be added to the response.
             ex (Exception|dict|str): The exception object or error message.
             data (dict): custom data to be added to the response.
+            full_exception_traceback (bool): Whether to include the full traceback in the error details. Defaults to False.
             **kwargs: Arbitrary keyword arguments.
         Returns:
             dict: The JSend error response.
@@ -182,8 +187,10 @@ class JSendResponse(BaseModel):
             if isinstance(ex, Exception):
                 d["__error"] = {
                     "name": ex.__class__.__name__,
-                    "msg": str(ex),
-                    "trace": muty.log.exception_to_string(ex, with_full_traceback=True),
+                    "msg": muty.string.make_shorter(str(ex), max_len=1024),
+                    "trace": muty.log.exception_to_string(
+                        ex, with_full_traceback=full_exception_traceback
+                    ),
                 }
             elif isinstance(ex, dict):
                 d["__error"] = ex
