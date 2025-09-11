@@ -133,3 +133,15 @@ def enclose(s: str, enclosure: str = '"') -> str:
         str: The enclosed string.
     """
     return f"{enclosure}{s}{enclosure}"
+
+
+def to_camel_case(name: str) -> str:
+    """
+    Convert a string to CamelCase (i.e. turn "hello world"/"hello_world" into "HelloWorld")
+
+    Args:
+        name (str): The input string.
+    Returns:
+        str: The CamelCase string.
+    """
+    return re.sub(r"(?:^|[-_])([a-zA-Z0-9])", lambda m: m.group(1).upper(), name)
