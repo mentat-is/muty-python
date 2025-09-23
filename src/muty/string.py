@@ -59,7 +59,7 @@ def remove_unicode_bom(s: str, unenclose: bool = False) -> str:
 
     Args:
         s (str): The input string.
-        unenclose (bool, optional): Whether to remove enclosing characters (e.g., quotes) at position 0 and (len-1). Defaults to False.
+        unenclose (bool, optional): Whether to remove enclosing characters " and ' at position 0 and (len-1), only effective if the string is enclosed. Defaults to False.
 
     Returns:
         str: The string with the Unicode BOM removed, if present.
@@ -71,7 +71,7 @@ def remove_unicode_bom(s: str, unenclose: bool = False) -> str:
     elif s.startswith(codecs.BOM_UTF16_BE.decode("utf-16-be")):
         s = s.lstrip(codecs.BOM_UTF16_BE.decode("utf-16-be"))
 
-    if unenclose and len(s) > 2:
+    if unenclose and len(s) > 2 and s[0] == s[-1] and s[0] in ['"', "'"]:
         s = s[1:-1]
     return s
 
