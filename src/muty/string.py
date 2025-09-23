@@ -53,12 +53,13 @@ def ensure_no_space_no_special(s: str, lowercase: bool = True) -> str:
     return s
 
 
-def remove_unicode_bom(s: str) -> str:
+def remove_unicode_bom(s: str, unenclose: bool = False) -> str:
     """
     Removes the Unicode Byte Order Mark (BOM) from the beginning of a string, if present.
 
     Args:
         s (str): The input string.
+        unenclose (bool, optional): Whether to remove enclosing characters (e.g., quotes) at position 0 and (len-1). Defaults to False.
 
     Returns:
         str: The string with the Unicode BOM removed, if present.
@@ -69,6 +70,9 @@ def remove_unicode_bom(s: str) -> str:
         s = s.lstrip(codecs.BOM_UTF16_LE.decode("utf-16-le"))
     elif s.startswith(codecs.BOM_UTF16_BE.decode("utf-16-be")):
         s = s.lstrip(codecs.BOM_UTF16_BE.decode("utf-16-be"))
+
+    if unenclose and len(s) > 2:
+        s = s[1:-1]
     return s
 
 
