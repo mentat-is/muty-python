@@ -247,7 +247,16 @@ def number_to_nanos_from_unix_epoch(numeric: str | int) -> int:
         int: The number of nanoseconds since the Unix epoch.
     """
     if isinstance(numeric, str):
-        numeric = int(numeric)
+        try:
+            numeric = int(numeric)
+        except:
+            try:
+                # numeric = numeric.replace(".", "")
+                # numeric = int(numeric)
+                s, us = divmod(float(numeric), 1.0)
+                numeric = int(s) * 1_000_000_000 + round(us * 1_000_000_000)
+            except:
+                raise ValueError("string is not numeric")
 
     if numeric > 1_000_000_000_000_000_000:
         # assume nanoseconds, leave as is
@@ -397,19 +406,22 @@ def string_to_nanos_from_unix_epoch(
     @throws ParserError: If the timestamp cannot be converted.
     """
     # Parse the datetime string
-    dt = parser.parse(
-        s,
-        dayfirst=dayfirst,
-        yearfirst=yearfirst,
-        fuzzy=fuzzy,
-        default=datetime.now(tz=tz.UTC),
-    )
+    try:
+        dt = parser.parse(
+            s,
+            dayfirst=dayfirst,
+            yearfirst=yearfirst,
+            fuzzy=fuzzy,
+            default=datetime.now(tz=tz.UTC),
+        )
+        # if year is before unix epoch, return epoch time in nanoseconds
+        if dt.year < 1970:
+            return 0
 
-    # if year is before unix epoch, return epoch time in nanoseconds
-    if dt.year < 1970:
-        return 0
-    
-    return datetime_to_nanos_from_unix_epoch(dt, utc=utc)
+        return datetime_to_nanos_from_unix_epoch(dt, utc=utc)
+    except:
+        # maybe a number or float
+        return number_to_nanos_from_unix_epoch(s)
 
 
 def filename_to_nanos_from_unix_epoch(
