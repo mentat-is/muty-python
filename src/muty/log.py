@@ -346,8 +346,11 @@ def exception_to_string(ex: Exception, with_full_traceback: bool = False) -> str
         with_full_traceback (bool): Whether to include the full traceback or not.
 
     Returns:
-        str: The string representation of the exception.
+        str: The string representation of the exception, or None if ex is None.
     """
+    if not ex:
+        return None
+
     ex_t = ex.__class__.__name__
     tb = ex.__traceback__
     ex_str = ""
