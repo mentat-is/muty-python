@@ -94,8 +94,6 @@ class MutyLogger(logging.Logger):
             **kwargs: additional parameters to pass to configure_logger()
         """
         if not hasattr(cls, "_instance"):
-            if not name:
-                raise ValueError("name must be provided on first call")
             cls._instance = logging.getLogger(name)
 
             # save the logger configuration as class variables
