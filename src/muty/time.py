@@ -9,7 +9,6 @@ from datetime import datetime, timedelta, timezone
 import ntplib
 from dateutil import parser, tz
 from dateutil.parser._parser import ParserError
-
 from muty.log import MutyLogger
 
 MICROSECONDS_TO_NANOSECONDS = 1000
@@ -384,6 +383,22 @@ def chrome_epoch_to_nanos_from_unix_epoch(timestamp: int):
     """
     return chrome_epoch_to_millis_from_unix_epoch(timestamp) * 1000000
 
+def windows_filetime_to_nanos_from_unix_epoch(timestamp: int) -> int:
+    """
+    Converts a Windows FILETIME timestamp to the number of nanoseconds since the Unix epoch.
+
+    Args:
+        timestamp (int): timestamp to convert.
+
+    Returns:
+        int: The number of nanoseconds since the Unix epoch.
+    """
+    # Windows FILETIME is in 100-nanosecond intervals since January 1, 1601 (UTC)
+    # Unix epoch starts on January 1, 1970 (UTC)
+    WINDOWS_TO_UNIX_EPOCH_OFFSET = 116444736000000000  # in 100-nanosecond intervals
+
+    nanos_since_unix_epoch: int = (timestamp - WINDOWS_TO_UNIX_EPOCH_OFFSET) * 100
+    return nanos_since_unix_epoch
 
 def string_to_nanos_from_unix_epoch(
     s: str,
