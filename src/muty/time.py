@@ -2,6 +2,7 @@
 time utilities
 """
 
+import math
 import os
 import time
 from datetime import datetime, timedelta, timezone
@@ -11,9 +12,9 @@ from dateutil import parser, tz
 from dateutil.parser._parser import ParserError
 from muty.log import MutyLogger
 
-MICROSECONDS_TO_NANOSECONDS = 1000
+MICROSECONDS_TO_NANOSECONDS = 1_000
 MILLISECONDS_TO_NANOSECONDS = 1000_000
-SECONDS_TO_NANOSECONDS = 1000_000_000
+SECONDS_TO_NANOSECONDS = 1_000_000_000
 NANOSECONDS_TO_MILLISECONDS = MILLISECONDS_TO_NANOSECONDS
 
 
@@ -245,32 +246,39 @@ def number_to_nanos_from_unix_epoch(numeric: str | int) -> int:
     Returns:
         int: The number of nanoseconds since the Unix epoch.
     """
+
     if isinstance(numeric, str):
-        try:
-            numeric = int(numeric)
-        except:
+        if "." in numeric:
+            parts = numeric.split(".")
+            seconds_part = int(parts[0])
+            fraction_str = parts[1][:9].ljust(9, "0")
+            nanos_fraction = int(fraction_str)
+
+            numeric = (seconds_part * SECONDS_TO_NANOSECONDS) + nanos_fraction
+        else:
             try:
-                # numeric = numeric.replace(".", "")
-                # numeric = int(numeric)
-                s, us = divmod(float(numeric), 1.0)
-                numeric = int(s) * 1_000_000_000 + round(us * 1_000_000_000)
-            except:
-                raise ValueError("string is not numeric")
+                numeric = int(numeric)
+            except ValueError:
+                raise ValueError(
+                    f"String '{numeric}' is not a valid integer or decimal."
+                )
+
+    if isinstance(numeric, float):
+        numeric = int(math.ceil(numeric))
+
+    if numeric < 0:
+        raise ValueError(f"Numeric value must be non-negative: {numeric}")
 
     if numeric > 1_000_000_000_000_000_000:
-        # assume nanoseconds, leave as is
         return numeric
-    elif numeric > 1_000_000_000_000_000:
-        # assume microseconds
+
+    if numeric > 1_000_000_000_000_000:
         return numeric * MICROSECONDS_TO_NANOSECONDS
-    elif numeric > 1_000_000_000_000:
-        # assume milliseconds
+
+    if numeric > 1_000_000_000_000:
         return numeric * MILLISECONDS_TO_NANOSECONDS
-    elif numeric >= 0:
-        # assume seconds
-        return numeric * SECONDS_TO_NANOSECONDS
-    else:
-        raise ValueError("numeric value must be non-negative: %d" % (numeric))
+
+    return numeric * SECONDS_TO_NANOSECONDS
 
 
 def number_to_iso8601(numeric: int) -> str:
@@ -334,12 +342,20 @@ def datetime_to_nanos_from_unix_epoch(dt: datetime, utc: bool = True) -> int:
         int: The number of nanoseconds since the Unix epoch.
     """
 
+    # ensuring the datetime is in utc
     if utc:
         dt = dt.astimezone(timezone.utc)
 
-    # Calculate nanoseconds from the Unix epoch
-    epoch = datetime(1970, 1, 1, tzinfo=timezone.utc)
-    nsec = int((dt - epoch).total_seconds() * 1e9)
+    # obtaining the unix timestamp as an integer (seconds)
+    # timestamp() returns a float, so we take the floor to get total seconds
+    seconds = int(dt.timestamp())
+    # extracting microseconds directly from the datetime object (0-999999)
+    microseconds = dt.microsecond
+    # calculating nanoseconds: (seconds * 10^9) + (microseconds * 10^3)
+    # using pure integer arithmetic to preserve 100% precision
+    nsec = (seconds * SECONDS_TO_NANOSECONDS) + (
+        microseconds * MICROSECONDS_TO_NANOSECONDS
+    )
     return nsec
 
 
@@ -383,6 +399,7 @@ def chrome_epoch_to_nanos_from_unix_epoch(timestamp: int):
     """
     return chrome_epoch_to_millis_from_unix_epoch(timestamp) * 1000000
 
+
 def windows_filetime_to_nanos_from_unix_epoch(timestamp: int) -> int:
     """
     Converts a Windows FILETIME timestamp to the number of nanoseconds since the Unix epoch.
@@ -399,6 +416,7 @@ def windows_filetime_to_nanos_from_unix_epoch(timestamp: int) -> int:
 
     nanos_since_unix_epoch: int = (timestamp - WINDOWS_TO_UNIX_EPOCH_OFFSET) * 100
     return nanos_since_unix_epoch
+
 
 def string_to_nanos_from_unix_epoch(
     s: str,
