@@ -1,12 +1,12 @@
 """dict utility functions.
 """
 
-import orjson
+import re
 from typing import Any
 
 import json5
-
 import muty.list
+import orjson
 
 
 def from_json_file(path: str) -> dict:
@@ -220,13 +220,13 @@ def flatten(d: dict, prefix="", separator=".", encoding="utf8", normalize=None, 
         else:
             return s
 
-    def flatten(dd, prefix=prefix):
+    def _flatten(dd, prefix=prefix):
         if normalize:
             prefix = normalize(prefix)
         
         if isinstance(dd, dict):            
             for a in dd:                    
-                flatten(dd[a], str(prefix) + encode_or_hexstring(a) + separator)
+                _flatten(dd[a], str(prefix) + encode_or_hexstring(a) + separator)
         elif isinstance(dd, list) and expand_lists:
             i = 0
             for a in dd:
@@ -235,5 +235,62 @@ def flatten(d: dict, prefix="", separator=".", encoding="utf8", normalize=None, 
         else:
             out[prefix[:-1]] = encode_or_hexstring(dd)
 
-    flatten(d)
+    _flatten(d)
     return out
+
+def get_value_nested(d: dict, field: str) -> Any:
+    """
+    Retrieve a value from a (possibly) nested dictionary using a dot-separated field path.
+    
+    Args:
+        d (dict): The dictionary to retrieve the value from.
+        field (str): The dot-separated field path (e.g., "a.b.c[0].d").
+    Returns:
+        Any: The value at the specified field path, or None if the path does not exist in the dictionary.
+    """
+    if d is None or not field:
+        return None
+
+    # quick direct match for exact field name
+    if isinstance(d, dict) and d.get(field) is not None:
+        return d.get(field)
+
+    parts = field.split(".")
+    current: Any = d
+    i = 0
+    while i < len(parts):
+        # try longest dot-joined key first (handles keys containing dots)
+        matched = False
+        for j in range(len(parts), i, -1):
+            candidate = ".".join(parts[i:j])
+            if isinstance(current, dict) and candidate in current:
+                current = current[candidate]
+                i = j
+                matched = True
+                break
+        if matched:
+            continue
+
+        # fall back to single segment parsing with optional indices
+        part = parts[i]
+        m = re.match(r"^([^\[\]]+)", part)
+        rest = part
+        if m:
+            key = m.group(1)
+            if not isinstance(current, dict) or key not in current:
+                return None
+            current = current[key]
+            rest = part[m.end():]
+
+        # process indices like [0][1]
+        for im in re.finditer(r"\[(\d+)\]", rest):
+            if not isinstance(current, (list, tuple)):
+                return None
+            idx = int(im.group(1))
+            if idx < 0 or idx >= len(current):
+                return None
+            current = current[idx]
+
+        i += 1
+
+    return current
