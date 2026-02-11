@@ -236,7 +236,7 @@ def ensure_iso8601(
 
 def number_to_nanos_from_unix_epoch(numeric: str | int) -> int:
     """
-    Converts a numeric value to nanoseconds from the Unix epoch.
+    Converts a numeric string/int value to nanoseconds from the Unix epoch.
 
     the numeric value may be in seconds/milliseconds/microseconds/nanoseconds from the unix epoch.
 
@@ -424,9 +424,11 @@ def string_to_nanos_from_unix_epoch(
     dayfirst: bool = False,
     yearfirst: bool = True,
     fuzzy: bool = False,
+    format_string: str = None,
+    throw_on_invalid: bool = False,
 ) -> int:
     """
-    convert an iso8601 time string to nanoseconds from the Unix epoch.
+    convert an iso8601 time string or a numeric string (calling number_to_nanos_from_unix_epoch) to nanoseconds from the Unix epoch.
 
     NOTE: The string is parsed using dateutil.parser.parse(), so the valid formats are the ones listed in the dateutil documentation.
 
@@ -435,26 +437,62 @@ def string_to_nanos_from_unix_epoch(
     @param dayfirst (bool, optional): Whether to interpret the first value in ambiguous dates as the day. Defaults to False.
     @param yearfirst (bool, optional): Whether to interpret the first value in ambiguous dates as the year. Defaults to True.
     @param fuzzy (bool, optional): Whether to interpret the string in a fuzzy way. Defaults to False.
-    @return int: The timestamp in nanoseconds from the Unix epoch.
+    @param format_string (str, optional): The format string to use with dateutil.parser.parse if s is a supported string format. Defaults to None.
+    @param throw_on_invalid (bool, optional): Whether to throw an error if s cannot be parsed. Defaults to False (returns 0 in this case).
+    @return int: The timestamp in nanoseconds from the Unix epoch, or 0 if the string cannot be parsed and throw_on_invalid is False.
     @throws ParserError: If the timestamp cannot be converted.
     """
-    # Parse the datetime string
+    # Parse the datetime string. Prefer a provided format string when present.
     try:
-        dt = parser.parse(
-            s,
-            dayfirst=dayfirst,
-            yearfirst=yearfirst,
-            fuzzy=fuzzy,
-            default=datetime.now(tz=tz.UTC),
-        )
+        if format_string:
+            try:
+                dt = datetime.strptime(s, format_string)
+            except Exception:
+                # if strptime fails, fall back to dateutil's parser...
+                MutyLogger.get_instance().warning(
+                    "Failed to parse time string '%s' with format '%s', falling back to dateutil.parser.parse" % (s, format_string)
+                )
+                dt = parser.parse(
+                    s,
+                    dayfirst=dayfirst,
+                    yearfirst=yearfirst,
+                    fuzzy=fuzzy,
+                    default=datetime.now(tz=tz.UTC),
+                )
+        else:
+            dt = parser.parse(
+                s,
+                dayfirst=dayfirst,
+                yearfirst=yearfirst,
+                fuzzy=fuzzy,
+                default=datetime.now(tz=tz.UTC),
+            )
+
         # if year is before unix epoch, return epoch time in nanoseconds
         if dt.year < 1970:
+            # invalid ... but we return 0 instead of throwing an error
+            if throw_on_invalid:
+                raise ValueError(
+                    "Parsed datetime is invalid, provided=%s, parsed=%s" % (s, dt.isoformat())
+                )
             return 0
 
+        # If we used a format string and resulting datetime is naive,
+        # attach UTC tzinfo when utc=True so subsequent conversions
+        # to UTC work correctly. If utc=False, leave naive to be
+        # interpreted as local time by timestamp().
+        if format_string and dt.tzinfo is None and utc:
+            dt = dt.replace(tzinfo=timezone.utc)
+
         return datetime_to_nanos_from_unix_epoch(dt, utc=utc)
-    except:
+    except Exception:
         # maybe a number or float
-        return number_to_nanos_from_unix_epoch(s)
+        try:
+            return number_to_nanos_from_unix_epoch(s)
+        except Exception as ex:
+            if throw_on_invalid:
+                raise ex
+            return 0
 
 
 def filename_to_nanos_from_unix_epoch(
@@ -465,11 +503,12 @@ def filename_to_nanos_from_unix_epoch(
     dayfirst: bool = False,
     yearfirst: bool = True,
     fallback_to_now: bool = True,
+    format_string: str = None,
 ) -> tuple[int, bool]:
     """
     Extracts a timestamp from filename/path, returning nanoseconds from unix epoch
 
-    NOTE: The string is parsed using dateutil.parser.parse(), so the valid formats are the ones listed in the dateutil documentation.
+    NOTE: The string is parsed using dateutil.parser.parse(), so the valid formats are the ones listed in the dateutil documentation. if it is a numeric string, it is parsed with number_to_nanos_from_unix_epoch.
 
     Args:
         filename_or_path (str): The filename or path to extract the timestamp from.
@@ -479,6 +518,7 @@ def filename_to_nanos_from_unix_epoch(
         dayfirst (bool, optional): Whether the day comes first in the date string. Defaults to False.
         yearfirst (bool, optional): Whether the year comes first in the date string. Defaults to True.
         fallback_to_now (bool, optional): Whether to fallback to the current time if the timestamp cannot be extracted. Defaults to True.
+        format_string (str, optional): The format string to use with dateutil.parser.parse if the extracted string is a supported string format. Defaults to None.
     Returns:
         int, bool: The extracted timestamp in nanoseconds from the Unix epoch and a boolean indicating whether the returned int is a fallback value (now() timestamp).
     Raises:
@@ -493,21 +533,7 @@ def filename_to_nanos_from_unix_epoch(
     timestr: str = parts[idx]
     if timestr.isnumeric():
         time_int = int(timestr)
-        # check if time_int is in seconds, milliseconds, microseconds, nanoseconds. convert it to nanoseconds
-        if time_int > 1_000_000_000_000_000_000:
-            # assume nanoseconds, leave as is
-            return time_int, False
-        elif time_int > 1_000_000_000_000_000:
-            # assoume microseconds
-            return time_int * MICROSECONDS_TO_NANOSECONDS, False
-        elif time_int > 1_000_000_000_000:
-            # assume milliseconds
-            return time_int * MILLISECONDS_TO_NANOSECONDS, False
-        elif time_int >= 0:
-            # else, assume seconds
-            return time_int * SECONDS_TO_NANOSECONDS, False
-
-        raise ValueError("numeric value must be non-negative: %d" % (time_int))
+        return number_to_nanos_from_unix_epoch(time_int), False
 
     try:
         ns = string_to_nanos_from_unix_epoch(
@@ -515,6 +541,7 @@ def filename_to_nanos_from_unix_epoch(
             utc=utc,
             dayfirst=dayfirst,
             yearfirst=yearfirst,
+            format_string=format_string,
         )
     except Exception as e:
         if fallback_to_now:
