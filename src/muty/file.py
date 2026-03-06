@@ -234,7 +234,7 @@ def list_directory(
     else:
         f = p.glob
 
-    for pp in f(mask):
+    for pp in f(mask, case_sensitive=case_sensitive):
         if files_only and pp.is_dir():
             # skip directories
             continue
