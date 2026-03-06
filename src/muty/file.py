@@ -17,9 +17,7 @@ from zipfile import ZipFile
 import aiofiles
 import aiofiles.os
 import aiofiles.ospath
-import aiopath.wrap
 import aioshutil
-from aiopath import AsyncPath
 from async_unzip.unzipper import unzip as unzip_async
 
 import muty.log
@@ -109,14 +107,19 @@ async def delete_file_or_dir_async(path: str, ignore_errors: bool = True) -> Non
     if path is None:
         return
 
-    p = AsyncPath(path)
     if not ignore_errors:
-        if not await p.exists():
+        if not await aiofiles.ospath.exists(path):
+        # if not await p.exists():
             raise FileNotFoundError("file %s does not exist" % (path))
 
     if await aiofiles.ospath.isfile(path):
         # delete file
-        await p.unlink()
+        # await p.unlink()
+        try:
+            await aiofiles.os.remove(path)
+        except FileNotFoundError:
+            if not ignore_errors:
+                raise
 
     elif await aiofiles.ospath.isdir(path):
         # delete directory tree
@@ -184,46 +187,6 @@ def write_file(path: str, content: bytes, append: bool = False) -> None:
     with open(path, "ab" if append else "wb") as f:
         f.write(content)
 
-
-async def _internal_rglob_fix_aiopath(
-    p: AsyncPath, pattern: str, case_sensitive: bool = None
-) -> AsyncIterable[AsyncPath]:
-    """
-    fix for aiopath.rglob()
-    FIXME: remove this once aiopath.rglob() is fixed
-    """
-    for path in await aiopath.wrap.to_thread(
-        p._path.rglob, pattern, case_sensitive=case_sensitive
-    ):
-        yield AsyncPath(path)
-
-
-async def _list_directory_async_recursive(
-    path: str, mask: str = None, files_only: bool = False, case_sensitive: bool = None
-) -> list[str]:
-    paths = []
-    if mask is None:
-        mask = "*"
-
-    p: AsyncPath = AsyncPath(path)
-    if sys.version_info >= (3, 12):
-        # 3.12 aiopath fix
-        async for pp in _internal_rglob_fix_aiopath(
-            p, mask, case_sensitive=case_sensitive
-        ):
-            if files_only and await pp.is_dir():
-                # skip directories
-                continue
-            paths.append(str(pp))
-    else:
-        async for pp in p.rglob(mask, case_sensitive=case_sensitive):
-            if files_only and await pp.is_dir():
-                # skip directories
-                continue
-            paths.append(str(pp))
-    return paths
-
-
 async def list_directory_async(
     path: str,
     mask: str = None,
@@ -243,27 +206,12 @@ async def list_directory_async(
     Returns:
         list[str]: A list of paths to files and directories that match the specified mask, possibly empty.
     """
-    if recursive:
-        return await _list_directory_async_recursive(
-            path, mask, files_only, case_sensitive=case_sensitive
-        )
-
-    paths = []
-    if mask is None:
-        mask = "*"
-
-    p: AsyncPath = AsyncPath(path)
-    async for pp in p.glob(mask, case_sensitive=case_sensitive):
-        if files_only and await pp.is_dir():
-            # skip directories
-            continue
-        paths.append(str(pp))
-
-    return paths
-
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(
+        None, list_directory, path, mask, recursive, files_only, case_sensitive)
 
 def list_directory(
-    path: str, mask: str = None, recursive: bool = False, files_only: bool = False
+    path: str, mask: str = None, recursive: bool = False, files_only: bool = False, case_sensitive: bool = None
 ) -> list[str]:
     """
     List all files and directories in a given path that match a specified mask
@@ -361,12 +309,17 @@ async def abspath_async(path: str, resolve: bool = False) -> str:
     Returns:
         str: The absolute path of the file or directory.
     """
-    p = AsyncPath(path)
-    pp = await p.expanduser()
-    if resolve:
-        pp = await pp.resolve()
-    pp = await pp.absolute()
-    return pp.as_posix()
+    loop = asyncio.get_running_loop()
+
+    def _sync_abspath(p: str) -> str:
+        # expanduser first (handles ``~``)
+        p = os.path.expanduser(p)
+        if resolve:
+            # realpath will resolve symlinks and normalize the path
+            p = os.path.realpath(p)
+        return os.path.abspath(p)
+
+    return await loop.run_in_executor(None, _sync_abspath, path)
 
 
 def abspath(path: str, resolve: bool = False) -> str:
