@@ -108,13 +108,14 @@ class JSendResponse(BaseModel):
     )
 
     @staticmethod
-    def success(req_id: str = None, data: dict = None) -> dict:
+    def success(req_id: str = None, data: dict = None, print_response: bool = True) -> dict:
         """
         Creates a JSend successful response dictionary.
 
         Args:
             req_id (str): The request ID to be added to the response.
             data (dict): The data of the response (should contain the result itself, dict layout is API dependent).
+            print_response (bool): Whether to print the response. Defaults to True.
 
         Returns:
             dict: The JSend successful response.
@@ -126,18 +127,20 @@ class JSendResponse(BaseModel):
         if data is not None:
             js["data"] = data
 
-        MutyLogger.get_instance().info(
-            orjson.dumps(js, option=orjson.OPT_INDENT_2).decode()
-        )
+        if print_response:
+            MutyLogger.get_instance().info(
+                orjson.dumps(js, option=orjson.OPT_INDENT_2).decode()
+            )
         return js
 
     @staticmethod
-    def pending(req_id: str) -> dict:
+    def pending(req_id: str, print_response: bool = True) -> dict:
         """
         Creates a JSend pending response dictionary.
 
         Args:
             req_id (str): The request ID to be added to the response.
+            print_response (bool): Whether to print the response. Defaults to True.
 
         Returns:
             dict: The JSend pending response.
@@ -146,9 +149,10 @@ class JSendResponse(BaseModel):
         js["timestamp_msec"] = muty.time.now_msec()
         if req_id:
             js["req_id"] = req_id
-        MutyLogger.get_instance().info(
-            orjson.dumps(js, option=orjson.OPT_INDENT_2).decode()
-        )
+        if print_response:
+            MutyLogger.get_instance().info(
+                orjson.dumps(js, option=orjson.OPT_INDENT_2).decode()
+            )
         return js
 
     @staticmethod
@@ -157,6 +161,7 @@ class JSendResponse(BaseModel):
         ex: Exception | dict | str = None,
         data: dict = None,
         full_exception_traceback: bool = True,
+        print_response: bool = True,
         **kwargs,
     ) -> dict:
         """
@@ -167,6 +172,7 @@ class JSendResponse(BaseModel):
             ex (Exception|dict|str): The exception object or error message.
             data (dict): custom data to be added to the response.
             full_exception_traceback (bool): Whether to include the full traceback in the error details. Defaults to False.
+            print_response (bool): Whether to print the response. Defaults to True.
             **kwargs: Arbitrary keyword arguments.
         Returns:
             dict: The JSend error response.
@@ -202,8 +208,10 @@ class JSendResponse(BaseModel):
                 d["__error"] = {}
             d["__error"][k] = v
 
-        # MutyLogger.get_instance().error(orjson.dumps(js, option=orjson.OPT_INDENT_2).decode())
-        pprint(orjson.dumps(js, option=orjson.OPT_INDENT_2).decode())
+        if print_response:
+            MutyLogger.get_instance().error(
+                orjson.dumps(js, option=orjson.OPT_INDENT_2).decode()
+            )
         return js
 
     @staticmethod
