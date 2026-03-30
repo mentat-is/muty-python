@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
 write_to = "src/muty/_version.py"
-version_scheme = "post-release"
-local_scheme = "no-local-version"
+version_scheme = "guess-next-dev"
+local_scheme = "node-and-date"
 
 [project]
 name = "muty-python"
