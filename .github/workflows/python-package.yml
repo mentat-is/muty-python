@@ -2,10 +2,8 @@ name: Python package
 
 on:
   push:
-    branches: [main, master, develop]
     tags: ['v*', 'test-v*']
-  pull_request:
-    branches: [main, master, develop]
+  workflow_dispatch: {}
 
 jobs:
   test:
@@ -32,11 +30,8 @@ jobs:
 
       - name: Build artifacts
         run: |
-          if [[ "${GITHUB_REF##*/}" == test-v* ]]; then
-            export SETUPTOOLS_SCM_LOCAL=node-and-date
-          else
-            export SETUPTOOLS_SCM_LOCAL=no-local-version
-          fi
+          # Usa sempre git commit hash (node-and-date) per avere versioni univoche in dev/CI
+          export SETUPTOOLS_SCM_LOCAL=node-and-date
           python -m build
 
       - name: Check package
@@ -65,11 +60,8 @@ jobs:
 
       - name: Build
         run: |
-          if [[ "${GITHUB_REF##*/}" == test-v* ]]; then
-            export SETUPTOOLS_SCM_LOCAL=node-and-date
-          else
-            export SETUPTOOLS_SCM_LOCAL=no-local-version
-          fi
+          # Usa sempre git commit hash (node-and-date) anche per rilascio/test
+          export SETUPTOOLS_SCM_LOCAL=node-and-date
           python -m build
 
       - name: Publish to PyPI
