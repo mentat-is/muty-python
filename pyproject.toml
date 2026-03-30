@@ -8,7 +8,7 @@ version_scheme = "post-release"
 local_scheme = "no-local-version"
 
 [project]
-name = "muty"
+name = "muty-python"
 dynamic = ["version"]
 authors = [{ name = "Mentat", email = "info@mentat.is" }]
 description = "our internal utilities :)"
