@@ -76,9 +76,12 @@ jobs:
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN_VALERINO }}
+          TWINE_PASSWORD_TEST: ${{ secrets.PYPI_API_TEST_TOKEN_VALERINO }}
         run: |
           if [[ "${GITHUB_REF##*/}" == test-v* ]]; then
+            export TWINE_PASSWORD="${TWINE_PASSWORD_TEST}"
             python -m twine upload --repository-url https://test.pypi.org/legacy/ dist/*
           else
+            export TWINE_PASSWORD="${TWINE_PASSWORD}"
             python -m twine upload dist/*
           fi
