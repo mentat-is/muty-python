@@ -1,13 +1,20 @@
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=68.0", "wheel", "setuptools_scm[toml]>=7.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
+write_to = "src/muty/_version.py"
+version_scheme = "post-release"
+local_scheme = "node-and-date"
 
 [project]
 name = "muty"
-version = "1.0.0"
+dynamic = ["version"]
 authors = [{ name = "Mentat", email = "info@mentat.is" }]
 description = "our internal utilities :)"
 readme = "README.md"
 requires-python = ">=3.12"
+
+[tool.setuptools]
+packages = ["muty"]
+package-dir = {"" = "src"}

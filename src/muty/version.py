@@ -2,16 +2,21 @@
 This module provides functions for retrieving the version of packages.
 """
 
-import pkg_resources
+try:
+    from pkg_resources import get_distribution
+except ImportError:  # pragma: no cover
+    get_distribution = None
+
+from . import __version__
+
 
 def pkg_version(name: str) -> str:
-    """! Returns the version of the given package.
-    :param name: package name
-    :return: version of the package
-    """
-    return pkg_resources.get_distribution(name).version
+    """Returns the version of the given package."""
+    if get_distribution:
+        return get_distribution(name).version
+    return __version__
 
 
 def muty_version():
-    """! Returns the version of the muty package."""
-    return pkg_version("muty")
+    """Returns the version of the muty package."""
+    return __version__
