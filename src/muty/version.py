@@ -7,16 +7,16 @@ try:
 except ImportError:  # pragma: no cover
     get_distribution = None
 
-from . import __version__, __version_tuple__, __commit_id__
+from . import __version__, __version_full__
 
 
 def pkg_version(name: str) -> str:
     """Returns the version of the given package."""
     if get_distribution:
         return get_distribution(name).version
-    return __version__
+    return "1.0.0"
 
 
 def muty_version():
     """Returns the version of the muty package."""
-    return f"{__version__} ({__commit_id__})"
+    return f"{__version_full__}"
