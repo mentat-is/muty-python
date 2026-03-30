@@ -32,8 +32,22 @@ function check_branch() {
 check_clean_worktree
 check_branch
 
+function cleanup_tag() {
+  local tag="$1"
+  if git tag --list "$tag" >/dev/null 2>&1; then
+    echo "Local tag $tag exists, deleting local copy."
+    git tag -d "$tag" || true
+  fi
+  if git ls-remote --tags origin "$tag" | grep -q "$tag"; then
+    echo "Remote tag $tag exists, deleting remote copy."
+    git push --delete origin "$tag" || true
+  fi
+}
+
 if [[ "$MODE" == "test" ]]; then
   TAG="test-v${VERSION}"
+  echo "[test] preparing temporary tag $TAG"
+  cleanup_tag "$TAG"
   echo "[test] creating temporary tag $TAG"
   git tag -a "$TAG" -m "Test release $VERSION"
   git push origin "$TAG"
@@ -51,6 +65,8 @@ fi
 
 if [[ "$MODE" == "publish" ]]; then
   TAG="v${VERSION}"
+  echo "[publish] preparing release tag $TAG"
+  cleanup_tag "$TAG"
   echo "[publish] creating release tag $TAG"
   git tag -a "$TAG" -m "Release $VERSION"
   git push origin "$TAG"
