@@ -14,7 +14,7 @@ authors = [{ name = "Mentat", email = "info@mentat.is" }]
 description = "our internal utilities :)"
 readme = "README.md"
 requires-python = ">=3.12"
-license = { file = "LICENSE.md" }
+license-files = ["LICENSE.md"]
 
 [tool.setuptools]
 packages = ["muty"]
