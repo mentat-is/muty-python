@@ -7,7 +7,7 @@ try:
 except ImportError:  # pragma: no cover
     get_distribution = None
 
-from . import __version__, __commit_id__
+from . import __version__, commit_id
 
 
 def pkg_version(name: str) -> str:
@@ -19,4 +19,4 @@ def pkg_version(name: str) -> str:
 
 def muty_version():
     """Returns the version of the muty package."""
-    return f"{__version__} ({__commit_id__})" if __commit_id__ else __version__
+    return f"{__version__} ({commit_id})" if commit_id else __version__
