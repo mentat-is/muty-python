@@ -14,7 +14,9 @@ authors = [{ name = "Mentat", email = "info@mentat.is" }]
 description = "our internal utilities :)"
 readme = "README.md"
 requires-python = ">=3.12"
+license = { text = "AGPL-3.0" }
 
 [tool.setuptools]
 packages = ["muty"]
 package-dir = {"" = "src"}
+license-files = []
