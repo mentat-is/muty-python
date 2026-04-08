@@ -347,23 +347,16 @@ def _taskname_filter(record) -> bool:
     Returns:
         bool: always returns True to allow the record through
     """
-    # assign taskname if any
+    # assign task name when running in an asyncio task
     try:
-        l = asyncio.get_event_loop()
-    except:
-        # no event loop, no task
+        task: asyncio.Task | None = asyncio.current_task()
+        record.task = task.get_name() if task is not None else "-"
+    except RuntimeError:
+        # no running event loop in this thread
+        record.task = ""
+    except Exception:
         record.task = ""
         return True
-
-    if not l.is_running():
-        record.task = ""
-    else:
-        try:
-            task: asyncio.Task = asyncio.current_task()
-            record.task = task.get_name() if task is not None else "-"
-        except:
-            record.task = ""
-            return True
 
     return True
 
